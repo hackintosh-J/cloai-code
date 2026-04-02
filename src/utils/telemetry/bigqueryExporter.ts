@@ -64,6 +64,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
     metrics: ResourceMetrics,
     resultCallback: (result: ExportResult) => void,
   ): Promise<void> {
+    void metrics
     if (this.isShutdown) {
       resultCallback({
         code: ExportResultCode.FAILED,
@@ -72,16 +73,7 @@ export class BigQueryMetricsExporter implements PushMetricExporter {
       return
     }
 
-    const exportPromise = this.doExport(metrics, resultCallback)
-    this.pendingExports.push(exportPromise)
-
-    // Clean up completed exports
-    void exportPromise.finally(() => {
-      const index = this.pendingExports.indexOf(exportPromise)
-      if (index > -1) {
-        void this.pendingExports.splice(index, 1)
-      }
-    })
+    resultCallback({ code: ExportResultCode.SUCCESS })
   }
 
   private async doExport(

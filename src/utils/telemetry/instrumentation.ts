@@ -85,35 +85,25 @@ function telemetryTimeout(ms: number, message: string): Promise<never> {
 }
 
 export function bootstrapTelemetry() {
-  if (process.env.USER_TYPE === 'ant') {
-    // Read from ANT_ prefixed variables that are defined at build time
-    if (process.env.ANT_OTEL_METRICS_EXPORTER) {
-      process.env.OTEL_METRICS_EXPORTER = process.env.ANT_OTEL_METRICS_EXPORTER
-    }
-    if (process.env.ANT_OTEL_LOGS_EXPORTER) {
-      process.env.OTEL_LOGS_EXPORTER = process.env.ANT_OTEL_LOGS_EXPORTER
-    }
-    if (process.env.ANT_OTEL_TRACES_EXPORTER) {
-      process.env.OTEL_TRACES_EXPORTER = process.env.ANT_OTEL_TRACES_EXPORTER
-    }
-    if (process.env.ANT_OTEL_EXPORTER_OTLP_PROTOCOL) {
-      process.env.OTEL_EXPORTER_OTLP_PROTOCOL =
-        process.env.ANT_OTEL_EXPORTER_OTLP_PROTOCOL
-    }
-    if (process.env.ANT_OTEL_EXPORTER_OTLP_ENDPOINT) {
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
-        process.env.ANT_OTEL_EXPORTER_OTLP_ENDPOINT
-    }
-    if (process.env.ANT_OTEL_EXPORTER_OTLP_HEADERS) {
-      process.env.OTEL_EXPORTER_OTLP_HEADERS =
-        process.env.ANT_OTEL_EXPORTER_OTLP_HEADERS
-    }
-  }
+  delete process.env.ANT_OTEL_METRICS_EXPORTER
+  delete process.env.ANT_OTEL_LOGS_EXPORTER
+  delete process.env.ANT_OTEL_TRACES_EXPORTER
+  delete process.env.ANT_OTEL_EXPORTER_OTLP_PROTOCOL
+  delete process.env.ANT_OTEL_EXPORTER_OTLP_ENDPOINT
+  delete process.env.ANT_OTEL_EXPORTER_OTLP_HEADERS
 
-  // Set default tempoality to 'delta' because it's the more sane default
-  if (!process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE) {
-    process.env.OTEL_EXPORTER_OTLP_METRICS_TEMPORALITY_PREFERENCE = 'delta'
-  }
+  process.env.OTEL_METRICS_EXPORTER = 'none'
+  process.env.OTEL_LOGS_EXPORTER = 'none'
+  process.env.OTEL_TRACES_EXPORTER = 'none'
+  delete process.env.OTEL_EXPORTER_OTLP_PROTOCOL
+  delete process.env.OTEL_EXPORTER_OTLP_METRICS_PROTOCOL
+  delete process.env.OTEL_EXPORTER_OTLP_LOGS_PROTOCOL
+  delete process.env.OTEL_EXPORTER_OTLP_TRACES_PROTOCOL
+  delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+  delete process.env.OTEL_EXPORTER_OTLP_HEADERS
+  delete process.env.BETA_TRACING_ENDPOINT
+  delete process.env.ENABLE_BETA_TRACING_DETAILED
+  delete process.env.CLAUDE_CODE_ENABLE_TELEMETRY
 }
 
 // Per OTEL spec, "none" means "no automatically configured exporter for this signal".
@@ -322,7 +312,7 @@ async function getOtlpTraceExporters() {
 }
 
 export function isTelemetryEnabled() {
-  return isEnvTruthy(process.env.CLAUDE_CODE_ENABLE_TELEMETRY)
+  return false
 }
 
 function getBigQueryExportingReader() {
@@ -334,16 +324,7 @@ function getBigQueryExportingReader() {
 }
 
 function isBigQueryMetricsEnabled() {
-  // BigQuery metrics are enabled for:
-  // 1. API customers (excluding Claude.ai subscribers and Bedrock/Vertex)
-  // 2. Claude for Enterprise (C4E) users
-  // 3. Claude for Teams users
-  const subscriptionType = getSubscriptionType()
-  const isC4EOrTeamUser =
-    isClaudeAISubscriber() &&
-    (subscriptionType === 'enterprise' || subscriptionType === 'team')
-
-  return is1PApiCustomer() || isC4EOrTeamUser
+  return false
 }
 
 /**

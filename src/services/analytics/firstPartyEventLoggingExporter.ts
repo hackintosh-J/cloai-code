@@ -278,6 +278,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
     logs: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void,
   ): Promise<void> {
+    void logs
     if (this.isShutdown) {
       if (process.env.USER_TYPE === 'ant') {
         logForDebugging(
@@ -291,16 +292,7 @@ export class FirstPartyEventLoggingExporter implements LogRecordExporter {
       return
     }
 
-    const exportPromise = this.doExport(logs, resultCallback)
-    this.pendingExports.push(exportPromise)
-
-    // Clean up completed exports
-    void exportPromise.finally(() => {
-      const index = this.pendingExports.indexOf(exportPromise)
-      if (index > -1) {
-        void this.pendingExports.splice(index, 1)
-      }
-    })
+    resultCallback({ code: ExportResultCode.SUCCESS })
   }
 
   private async doExport(
