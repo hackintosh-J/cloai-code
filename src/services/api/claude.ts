@@ -28,10 +28,13 @@ import { readCustomApiStorage } from 'src/utils/customApiStorage.js'
 import {
   convertAnthropicRequestToOpenAI,
   convertAnthropicRequestToOpenAICodex,
+  convertAnthropicRequestToOpenAIResponses,
   createAnthropicStreamFromOpenAI,
   createAnthropicStreamFromOpenAICodex,
+  createAnthropicStreamFromOpenAIResponses,
   createOpenAICompatStream,
   createOpenAICodexStream,
+  createOpenAIResponsesStream,
 } from './openaiCompat.js'
 import {
   getAttributionHeader,
@@ -1822,18 +1825,16 @@ async function* queryModel(
               ? 'anthropic'
               : customApiStorage.provider ?? 'anthropic'
         if (compatProvider === 'openai') {
-          const isOfficialOpenAIOAuth =
-            customApiStorage.providerKind === 'openai-like' &&
-            customApiStorage.providerId === 'openai' &&
-            customApiStorage.providers?.some(
-              provider =>
-                provider.id === customApiStorage.providerId &&
-                provider.kind === 'openai-like' &&
-                provider.authMode === 'oauth' &&
-                provider.baseURL === customApiStorage.baseURL,
-            )
+          const activeOpenAIProvider = customApiStorage.providers?.find(
+            provider =>
+              provider.kind === 'openai-like' &&
+              provider.id === customApiStorage.providerId,
+          )
+          const openAIAuthMode =
+            activeOpenAIProvider?.authMode ??
+            (customApiStorage.providerId === 'openai' ? 'oauth' : 'chat-completions')
 
-          if (isOfficialOpenAIOAuth) {
+          if (openAIAuthMode === 'oauth') {
             const openAICodexRequest = convertAnthropicRequestToOpenAICodex({
               model: params.model,
               system: params.system,
@@ -1855,6 +1856,35 @@ async function* queryModel(
             )
             queryCheckpoint('query_response_headers_received')
             return createAnthropicStreamFromOpenAICodex({
+              reader,
+              model: params.model,
+            }) as unknown as Stream<BetaRawMessageStreamEvent>
+          }
+
+          if (openAIAuthMode === 'responses') {
+            const openAIResponsesRequest = convertAnthropicRequestToOpenAIResponses({
+              model: params.model,
+              system: params.system,
+              messages: params.messages,
+              tools: params.tools,
+              tool_choice: params.tool_choice,
+              temperature: params.temperature,
+              max_tokens: params.max_tokens,
+            })
+            const reader = await createOpenAIResponsesStream(
+              {
+                apiKey: process.env.CLOAI_API_KEY || '',
+                baseURL: process.env.ANTHROPIC_BASE_URL || '',
+                headers: clientRequestId
+                  ? { [CLIENT_REQUEST_ID_HEADER]: clientRequestId }
+                  : undefined,
+                fetch: globalThis.fetch,
+              },
+              openAIResponsesRequest,
+              signal,
+            )
+            queryCheckpoint('query_response_headers_received')
+            return createAnthropicStreamFromOpenAIResponses({
               reader,
               model: params.model,
             }) as unknown as Stream<BetaRawMessageStreamEvent>

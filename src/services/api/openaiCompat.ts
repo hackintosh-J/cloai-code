@@ -84,6 +84,64 @@ type OpenAICodexInputItem =
       output: string
     }
 
+type OpenAIResponsesInputItem =
+  | {
+      role: 'user'
+      content: Array<{
+        type: 'input_text'
+        text: string
+      }>
+    }
+  | {
+      role: 'assistant'
+      content: Array<{
+        type: 'output_text'
+        text: string
+      }>
+    }
+  | {
+      type: 'function_call'
+      call_id: string
+      name: string
+      arguments: string
+    }
+  | {
+      type: 'function_call_output'
+      call_id: string
+      output: string
+    }
+
+export type OpenAIResponsesRequest = {
+  model: string
+  instructions?: string
+  input: OpenAIResponsesInputItem[]
+  store: false
+  stream: true
+  tools?: Array<{
+    type: 'function'
+    name: string
+    description?: string
+    parameters?: unknown
+  }>
+  tool_choice?: 'auto'
+  parallel_tool_calls?: true
+  temperature?: number
+  max_output_tokens?: number
+  include?: ['reasoning.encrypted_content']
+}
+
+type ResponsesStreamEvent =
+  | CodexResponseCompletedEvent
+  | CodexOutputItemAddedEvent
+  | CodexOutputTextDeltaEvent
+  | CodexReasoningDeltaEvent
+  | CodexReasoningDoneEvent
+  | CodexFunctionCallArgumentsDeltaEvent
+  | CodexOutputItemDoneEvent
+  | CodexErrorEvent
+  | { type: string; [key: string]: unknown }
+
+
 export type OpenAICodexRequest = {
   model: string
   instructions?: string
@@ -111,6 +169,7 @@ type OpenAIStreamChunk = {
     delta?: {
       role?: 'assistant'
       content?: string | null
+      reasoning_content?: string | null
       tool_calls?: Array<{
         index?: number
         id?: string
@@ -164,6 +223,15 @@ type CodexOutputTextDeltaEvent = {
   delta: string
 }
 
+type CodexReasoningDeltaEvent = {
+  type: 'response.reasoning_summary_text.delta' | 'response.reasoning_text.delta'
+  delta: string
+}
+
+type CodexReasoningDoneEvent = {
+  type: 'response.reasoning_summary_text.done' | 'response.reasoning_text.done'
+}
+
 type CodexFunctionCallArgumentsDeltaEvent = {
   type: 'response.function_call_arguments.delta'
   delta: string
@@ -182,17 +250,6 @@ type CodexOutputItemDoneEvent = {
       text?: string
       refusal?: string
     }>
-  }
-}
-
-type CodexErrorEvent = {
-  type: 'error' | 'response.failed'
-  code?: string
-  message?: string
-  response?: {
-    error?: {
-      message?: string
-    }
   }
 }
 
@@ -464,6 +521,120 @@ export function convertAnthropicRequestToOpenAICodex(input: {
   }
 }
 
+function getResponsesToolDefinitions(
+  tools?: BetaToolUnion[],
+): OpenAIResponsesRequest['tools'] {
+  if (!tools || tools.length === 0) return undefined
+  const mapped = tools.flatMap(tool => {
+    const record = tool as unknown as Record<string, unknown>
+    const name = typeof record.name === 'string' ? record.name : undefined
+    if (!name) return []
+    return [{
+      type: 'function' as const,
+      name,
+      description:
+        typeof record.description === 'string' ? record.description : undefined,
+      parameters: record.input_schema,
+    }]
+  })
+  return mapped.length > 0 ? mapped : undefined
+}
+
+export function convertAnthropicRequestToOpenAIResponses(input: {
+  model: string
+  system?: string | Array<{ type?: string; text?: string }>
+  messages: BetaMessageParam[]
+  tools?: BetaToolUnion[]
+  tool_choice?: BetaToolChoiceAuto | BetaToolChoiceTool
+  temperature?: number
+  max_tokens?: number
+}): OpenAIResponsesRequest {
+  const configuredModel = process.env.ANTHROPIC_MODEL?.trim()
+  const targetModel = configuredModel || input.model
+  const instructions = Array.isArray(input.system)
+    ? input.system.map(block => block.text ?? '').join('\n')
+    : input.system
+  const responseInput: OpenAIResponsesInputItem[] = []
+
+  for (const message of input.messages) {
+    if (message.role === 'user') {
+      const blocks = toBlocks(message.content)
+      const toolResults = blocks.filter(block => block.type === 'tool_result')
+      for (const result of toolResults) {
+        const toolUseId =
+          typeof result.tool_use_id === 'string' ? result.tool_use_id : undefined
+        if (!toolUseId) continue
+        const content = result.content
+        responseInput.push({
+          type: 'function_call_output',
+          call_id: toolUseId,
+          output: typeof content === 'string' ? content : JSON.stringify(content),
+        })
+      }
+
+      const text = contentToText(
+        blocks.filter(block => block.type !== 'tool_result') as unknown as BetaMessageParam['content'],
+      )
+      if (text) {
+        responseInput.push({
+          role: 'user',
+          content: [{ type: 'input_text', text }],
+        })
+      }
+      continue
+    }
+
+    if (message.role === 'assistant') {
+      const blocks = Array.isArray(message.content)
+        ? (message.content as unknown as AnyBlock[])
+        : []
+      const text = blocks
+        .filter(block => block.type === 'text')
+        .map(block => (typeof block.text === 'string' ? block.text : ''))
+        .join('')
+      if (text) {
+        responseInput.push({
+          role: 'assistant',
+          content: [{ type: 'output_text', text }],
+        })
+      }
+      for (const block of blocks.filter(item => item.type === 'tool_use')) {
+        responseInput.push({
+          type: 'function_call',
+          call_id: String(block.id),
+          name: String(block.name),
+          arguments:
+            typeof block.input === 'string'
+              ? block.input
+              : JSON.stringify(block.input ?? {}),
+        })
+      }
+    }
+  }
+
+  return {
+    model: targetModel,
+    ...(instructions ? { instructions } : {}),
+    input: responseInput,
+    store: false,
+    stream: true,
+    ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
+    ...(input.max_tokens !== undefined
+      ? { max_output_tokens: input.max_tokens }
+      : {}),
+    ...(getResponsesToolDefinitions(input.tools)
+      ? {
+          tools: getResponsesToolDefinitions(input.tools),
+          tool_choice: 'auto' as const,
+          parallel_tool_calls: true as const,
+          include: ['reasoning.encrypted_content'] as const,
+        }
+      : {
+          include: ['reasoning.encrypted_content'] as const,
+        }),
+  }
+}
+
 export async function createOpenAICompatStream(
   config: OpenAICompatConfig,
   request: OpenAIChatRequest,
@@ -532,6 +703,41 @@ export async function createOpenAICodexStream(
   return response.body.getReader()
 }
 
+
+export async function createOpenAIResponsesStream(
+  config: OpenAICompatConfig,
+  request: OpenAIResponsesRequest,
+  signal?: AbortSignal,
+): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  const response = await (config.fetch ?? globalThis.fetch)(
+    joinBaseUrl(config.baseURL, '/v1/responses'),
+    {
+      method: 'POST',
+      signal,
+      headers: {
+        'content-type': 'application/json',
+        authorization: `Bearer ${config.apiKey}`,
+        ...config.headers,
+      },
+      body: JSON.stringify(request),
+    },
+  )
+
+  if (!response.ok || !response.body) {
+    let responseText = ''
+    try {
+      responseText = await response.text()
+    } catch {
+      responseText = ''
+    }
+    throw new Error(
+      `OpenAI Responses request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
+    )
+  }
+
+  return response.body.getReader()
+}
+
 function parseSSEChunk(buffer: string): { events: string[]; remainder: string } {
   const normalized = buffer.replace(/\r\n/g, '\n')
   const parts = normalized.split('\n\n')
@@ -552,14 +758,23 @@ export async function* createAnthropicStreamFromOpenAI(input: {
   const decoder = new TextDecoder()
   let buffer = ''
   let started = false
-  let textStarted = false
   let textContentIndex: number | null = null
+  let thinkingContentIndex: number | null = null
   let toolIndexByOpenAIIndex = new Map<number, number>()
   let nextContentIndex = 0
   let promptTokens = 0
   let completionTokens = 0
   let emittedAnyContent = false
   const toolCallState = new Map<number, { id: string; name: string; arguments: string }>()
+  const openContentIndices: number[] = []
+
+  function allocateContentIndex(): number {
+    return nextContentIndex++
+  }
+
+  function markContentIndexOpen(index: number) {
+    openContentIndices.push(index)
+  }
 
   while (true) {
     const { done, value } = await input.reader.read()
@@ -613,9 +828,9 @@ export async function* createAnthropicStreamFromOpenAI(input: {
         }
 
         if (delta?.content) {
-          if (!textStarted) {
-            textStarted = true
-            textContentIndex = nextContentIndex
+          if (textContentIndex === null) {
+            textContentIndex = allocateContentIndex()
+            markContentIndexOpen(textContentIndex)
             yield {
               type: 'content_block_start',
               index: textContentIndex,
@@ -628,10 +843,36 @@ export async function* createAnthropicStreamFromOpenAI(input: {
 
           yield {
             type: 'content_block_delta',
-            index: textContentIndex ?? 0,
+            index: textContentIndex,
             delta: {
               type: 'text_delta',
               text: delta.content,
+            },
+          } as BetaRawMessageStreamEvent
+          emittedAnyContent = true
+        }
+
+        if (delta?.reasoning_content) {
+          if (thinkingContentIndex === null) {
+            thinkingContentIndex = allocateContentIndex()
+            markContentIndexOpen(thinkingContentIndex)
+            yield {
+              type: 'content_block_start',
+              index: thinkingContentIndex,
+              content_block: {
+                type: 'thinking',
+                thinking: '',
+                signature: '',
+              },
+            } as BetaRawMessageStreamEvent
+          }
+
+          yield {
+            type: 'content_block_delta',
+            index: thinkingContentIndex,
+            delta: {
+              type: 'thinking_delta',
+              thinking: delta.reasoning_content,
             },
           } as BetaRawMessageStreamEvent
           emittedAnyContent = true
@@ -641,9 +882,9 @@ export async function* createAnthropicStreamFromOpenAI(input: {
           const openAIIndex = toolCall.index ?? 0
           let anthropicIndex = toolIndexByOpenAIIndex.get(openAIIndex)
           if (anthropicIndex === undefined) {
-            anthropicIndex = textStarted ? nextContentIndex + 1 : nextContentIndex
+            anthropicIndex = allocateContentIndex()
             toolIndexByOpenAIIndex.set(openAIIndex, anthropicIndex)
-            nextContentIndex = Math.max(nextContentIndex, anthropicIndex)
+            markContentIndexOpen(anthropicIndex)
             const state = {
               id: toolCall.id ?? `toolu_${openAIIndex}`,
               name: toolCall.function?.name ?? '',
@@ -682,9 +923,10 @@ export async function* createAnthropicStreamFromOpenAI(input: {
 
         if (choice?.finish_reason) {
           if (!emittedAnyContent) {
+            const emptyTextIndex = allocateContentIndex()
             yield {
               type: 'content_block_start',
-              index: 0,
+              index: emptyTextIndex,
               content_block: {
                 type: 'text',
                 text: '',
@@ -692,21 +934,14 @@ export async function* createAnthropicStreamFromOpenAI(input: {
             } as BetaRawMessageStreamEvent
             yield {
               type: 'content_block_stop',
-              index: 0,
+              index: emptyTextIndex,
             } as BetaRawMessageStreamEvent
           }
           completionTokens = chunk.usage?.completion_tokens ?? completionTokens
-          if (textStarted && textContentIndex !== null) {
+          for (const index of openContentIndices) {
             yield {
               type: 'content_block_stop',
-              index: textContentIndex,
-            } as BetaRawMessageStreamEvent
-          }
-
-          for (const anthropicIndex of toolIndexByOpenAIIndex.values()) {
-            yield {
-              type: 'content_block_stop',
-              index: anthropicIndex,
+              index,
             } as BetaRawMessageStreamEvent
           }
 
@@ -748,7 +983,24 @@ export async function* createAnthropicStreamFromOpenAI(input: {
   )
 }
 
-export async function* createAnthropicStreamFromOpenAICodex(input: {
+function createContentIndexAllocator() {
+  let nextContentIndex = 0
+  const openContentIndices: number[] = []
+
+  return {
+    allocate() {
+      return nextContentIndex++
+    },
+    markOpen(index: number) {
+      openContentIndices.push(index)
+    },
+    getOpenIndices() {
+      return openContentIndices
+    },
+  }
+}
+
+export async function* createAnthropicStreamFromOpenAIResponses(input: {
   reader: ReadableStreamDefaultReader<Uint8Array>
   model: string
 }): AsyncGenerator<BetaRawMessageStreamEvent, BetaMessage, void> {
@@ -756,16 +1008,12 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
   let buffer = ''
   let started = false
   let currentTextIndex: number | null = null
+  let currentThinkingIndex: number | null = null
   let currentToolIndex: number | null = null
   let promptTokens = 0
   let completionTokens = 0
   let stopReason: BetaMessage['stop_reason'] = 'end_turn'
-  let currentToolState:
-    | {
-        id: string
-        name: string
-      }
-    | undefined
+  const allocator = createContentIndexAllocator()
 
   while (true) {
     const { done, value } = await input.reader.read()
@@ -782,19 +1030,19 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
 
       for (const data of dataLines) {
         if (!data || data === '[DONE]') continue
-        const event = JSON.parse(data) as CodexStreamEvent
+        const event = JSON.parse(data) as ResponsesStreamEvent
         if (!event || typeof event !== 'object' || typeof event.type !== 'string') {
           continue
         }
 
         if (event.type === 'error') {
           throw new Error(
-            `Codex error: ${event.message || event.code || JSON.stringify(event)}`,
+            `OpenAI Responses error: ${event.message || event.code || JSON.stringify(event)}`,
           )
         }
         if (event.type === 'response.failed') {
           throw new Error(
-            event.response?.error?.message || event.message || 'Codex response failed',
+            event.response?.error?.message || event.message || 'OpenAI Responses failed',
           )
         }
 
@@ -803,7 +1051,7 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
           yield {
             type: 'message_start',
             message: {
-              id: 'openai-codex',
+              id: 'openai-responses',
               type: 'message',
               role: 'assistant',
               model: input.model,
@@ -820,7 +1068,8 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
 
         if (event.type === 'response.output_item.added') {
           if (event.item.type === 'message') {
-            currentTextIndex = currentToolIndex === null ? 0 : currentToolIndex + 1
+            currentTextIndex = allocator.allocate()
+            allocator.markOpen(currentTextIndex)
             yield {
               type: 'content_block_start',
               index: currentTextIndex,
@@ -831,18 +1080,15 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
             } as BetaRawMessageStreamEvent
           }
           if (event.item.type === 'function_call') {
-            currentToolIndex = currentTextIndex === null ? 0 : currentTextIndex + 1
-            currentToolState = {
-              id: event.item.call_id ?? event.item.id ?? 'toolu_codex',
-              name: event.item.name ?? '',
-            }
+            currentToolIndex = allocator.allocate()
+            allocator.markOpen(currentToolIndex)
             yield {
               type: 'content_block_start',
               index: currentToolIndex,
               content_block: {
                 type: 'tool_use',
-                id: currentToolState.id,
-                name: currentToolState.name,
+                id: event.item.call_id ?? event.item.id ?? 'toolu_openai',
+                name: event.item.name ?? '',
                 input: '',
               },
             } as BetaRawMessageStreamEvent
@@ -857,6 +1103,35 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
             delta: {
               type: 'text_delta',
               text: event.delta,
+            },
+          } as BetaRawMessageStreamEvent
+          continue
+        }
+
+        if (
+          (event.type === 'response.reasoning_summary_text.delta' ||
+            event.type === 'response.reasoning_text.delta') &&
+          event.delta
+        ) {
+          if (currentThinkingIndex === null) {
+            currentThinkingIndex = allocator.allocate()
+            allocator.markOpen(currentThinkingIndex)
+            yield {
+              type: 'content_block_start',
+              index: currentThinkingIndex,
+              content_block: {
+                type: 'thinking',
+                thinking: '',
+                signature: '',
+              },
+            } as BetaRawMessageStreamEvent
+          }
+          yield {
+            type: 'content_block_delta',
+            index: currentThinkingIndex,
+            delta: {
+              type: 'thinking_delta',
+              thinking: event.delta,
             },
           } as BetaRawMessageStreamEvent
           continue
@@ -879,20 +1154,11 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
         }
 
         if (event.type === 'response.output_item.done') {
-          if (event.item.type === 'message' && currentTextIndex !== null) {
-            yield {
-              type: 'content_block_stop',
-              index: currentTextIndex,
-            } as BetaRawMessageStreamEvent
+          if (event.item.type === 'message') {
             currentTextIndex = null
           }
-          if (event.item.type === 'function_call' && currentToolIndex !== null) {
-            yield {
-              type: 'content_block_stop',
-              index: currentToolIndex,
-            } as BetaRawMessageStreamEvent
+          if (event.item.type === 'function_call') {
             currentToolIndex = null
-            currentToolState = undefined
           }
           continue
         }
@@ -900,6 +1166,12 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
         if (event.type === 'response.completed') {
           promptTokens = event.response?.usage?.input_tokens ?? 0
           completionTokens = event.response?.usage?.output_tokens ?? 0
+          for (const index of allocator.getOpenIndices()) {
+            yield {
+              type: 'content_block_stop',
+              index,
+            } as BetaRawMessageStreamEvent
+          }
           yield {
             type: 'message_delta',
             delta: {
@@ -914,7 +1186,7 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
             type: 'message_stop',
           } as BetaRawMessageStreamEvent
           return {
-            id: event.response?.id ?? 'openai-codex',
+            id: event.response?.id ?? 'openai-responses',
             type: 'message',
             role: 'assistant',
             model: input.model,
@@ -932,10 +1204,16 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
   }
 
   throw new Error(
-    `[openaiCompat] codex stream ended unexpectedly before message_stop for model=${input.model}`,
+    `[openaiCompat] responses stream ended unexpectedly before message_stop for model=${input.model}`,
   )
 }
 
+export async function* createAnthropicStreamFromOpenAICodex(input: {
+  reader: ReadableStreamDefaultReader<Uint8Array>
+  model: string
+}): AsyncGenerator<BetaRawMessageStreamEvent, BetaMessage, void> {
+  yield* createAnthropicStreamFromOpenAIResponses(input)
+}
 export function mapOpenAIUsageToAnthropic(usage?: {
   prompt_tokens?: number
   completion_tokens?: number

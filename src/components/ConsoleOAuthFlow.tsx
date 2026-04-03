@@ -577,10 +577,7 @@ export function ConsoleOAuthFlow({
         state: 'custom_config',
         provider: safeOauthStatus.provider,
         authMode: nextAuthMode,
-        step:
-          safeOauthStatus.provider === 'openai-like' || isOauthAuthMode(nextAuthMode)
-            ? 'models'
-            : 'baseURL'
+        step: isOauthAuthMode(nextAuthMode) ? 'models' : 'baseURL'
       });
       return;
     }
