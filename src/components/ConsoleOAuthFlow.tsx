@@ -1304,10 +1304,10 @@ function OAuthStatusMessage({
         : oauthStatus.step === 'apiKey'
           ? 'sk-...'
           : oauthStatus.provider === 'openai-like'
-            ? 'gpt-5.4 gpt-4.1 gpt-4o-mini'
+            ? 'gpt-5.4'
             : oauthStatus.provider === 'gemini-like'
-              ? 'gemini-2.5-pro gemini-2.5-flash'
-              : 'claude-sonnet-4-6 claude-opus-4-6';
+              ? 'gemini-3-flash-preview gemini-3.1-pro-high'
+              : 'minimax-m2.7-highspeed';
 
       return (
         <Box flexDirection="column" gap={1} marginTop={1}>
