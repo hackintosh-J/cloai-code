@@ -137,6 +137,20 @@
 bun install
 ```
 
+确认 Bun 的可执行目录已经加入当前 shell 的 `PATH`，否则 `bun link` 后 `cloai` 可能只能在特定目录或特定 shell 环境里使用：
+
+```bash
+export BUN_INSTALL="$HOME/.bun"
+export PATH="$BUN_INSTALL/bin:$PATH"
+```
+
+可先自检：
+
+```bash
+which bun
+echo $PATH
+```
+
 ---
 
 ## 🛠️ 安装方式
@@ -160,6 +174,8 @@ cloai
 
 - 包名：`@cloai-code/cli`
 - 命令名：`cloai`
+
+如果执行 `cloai` 时提示 `command not found`，通常是 `~/.bun/bin` 没有加入 `PATH`；如果提示找不到 `bun`，则说明入口脚本里的 `#!/usr/bin/env bun` 无法解析到 Bun 可执行文件。
 
 ### 方式二：作为 link 包在其他项目中使用
 
