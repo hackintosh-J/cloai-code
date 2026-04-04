@@ -1002,7 +1002,7 @@ export function ConsoleOAuthFlow({
             </Box>
           </Box>}
       <Box paddingLeft={1} flexDirection="column" gap={1}>
-        <OAuthStatusMessage oauthStatus={safeOauthStatus} mode={mode} startingMessage={startingMessage} forcedMethodMessage={forcedMethodMessage} showPastePrompt={showPastePrompt} pastedCode={pastedCode} setPastedCode={setPastedCode} cursorOffset={cursorOffset} setCursorOffset={setCursorOffset} textInputColumns={textInputColumns} handleSubmitCode={handleSubmitCode} setOAuthStatus={setOAuthStatus} setLoginWithClaudeAi={setLoginWithClaudeAi} customBaseURL={customBaseURL} customApiKey={customApiKey} customModels={customModels} setCustomBaseURL={setCustomBaseURL} setCustomApiKey={setCustomApiKey} setCustomModels={setCustomModels} isCustomInputPasting={isCustomInputPasting} setIsCustomInputPasting={setIsCustomInputPasting} handleSubmitCustomConfig={handleSubmitCustomConfig} startCompatibleApiConfig={startCompatibleApiConfig} compatibleApiProvider={compatibleApiProvider} persistedProviders={persistedProviders} persistedActiveProvider={persistedActiveProvider} persistedActiveProviderKey={persistedActiveProviderKey} handleOpenProviderActions={handleOpenProviderActions} handleDeleteAccountRequest={handleDeleteAccountRequest} handleDeleteAccountConfirm={handleDeleteAccountConfirm} />
+        <OAuthStatusMessage oauthStatus={safeOauthStatus} mode={mode} startingMessage={startingMessage} forcedMethodMessage={forcedMethodMessage} showPastePrompt={showPastePrompt} pastedCode={pastedCode} setPastedCode={setPastedCode} cursorOffset={cursorOffset} setCursorOffset={setCursorOffset} textInputColumns={textInputColumns} handleSubmitCode={handleSubmitCode} setOAuthStatus={setOAuthStatus} setLoginWithClaudeAi={setLoginWithClaudeAi} customBaseURL={customBaseURL} customApiKey={customApiKey} customModels={customModels} setCustomBaseURL={setCustomBaseURL} setCustomApiKey={setCustomApiKey} setCustomModels={setCustomModels} isCustomInputPasting={isCustomInputPasting} setIsCustomInputPasting={setIsCustomInputPasting} handleSubmitCustomConfig={handleSubmitCustomConfig} startCompatibleApiConfig={startCompatibleApiConfig} compatibleApiProvider={compatibleApiProvider} persistedProviders={persistedProviders} persistedActiveProvider={persistedActiveProvider} persistedActiveProviderKey={persistedActiveProviderKey} handleOpenProviderActions={handleOpenProviderActions} handleDeleteAccountRequest={handleDeleteAccountRequest} handleDeleteAccountConfirm={handleDeleteAccountConfirm} onDone={onDone} />
       </Box>
     </Box>;
 }
@@ -1036,6 +1036,7 @@ type OAuthStatusMessageProps = {
   handleOpenProviderActions: (providerId: string) => void;
   handleDeleteAccountRequest: (providerId: string) => void;
   handleDeleteAccountConfirm: () => void;
+  onDone: () => void;
 };
 
 function OAuthStatusMessage({
@@ -1068,6 +1069,7 @@ function OAuthStatusMessage({
   handleOpenProviderActions,
   handleDeleteAccountRequest,
   handleDeleteAccountConfirm,
+  onDone,
 }: OAuthStatusMessageProps) {
   void isCustomInputPasting;
   void compatibleApiProvider;
@@ -1116,10 +1118,18 @@ function OAuthStatusMessage({
                 label: <Text>Add new account →</Text>,
                 value: '__add_new__' as const,
               },
+              {
+                label: <Text dimColor>Done →</Text>,
+                value: '__done__' as const,
+              },
             ]}
             onChange={value => {
               if (value === '__add_new__') {
                 setOAuthStatus({ state: 'provider_select' });
+                return;
+              }
+              if (value === '__done__') {
+                onDone();
                 return;
               }
               handleOpenProviderActions(value as string);
