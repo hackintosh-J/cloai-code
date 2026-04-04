@@ -188,6 +188,33 @@ function normalizeGeminiOAuth(value: unknown): GeminiOAuthConfig | undefined {
   }
 }
 
+function normalizeOpenAIOAuth(value: unknown): OpenAIOAuthConfig | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const record = value as Record<string, unknown>
+  const accessToken =
+    typeof record.accessToken === 'string' ? record.accessToken : undefined
+  const refreshToken =
+    typeof record.refreshToken === 'string' ? record.refreshToken : undefined
+  const expiresAt =
+    typeof record.expiresAt === 'number' ? record.expiresAt : undefined
+  const accountId =
+    typeof record.accountId === 'string' ? record.accountId : undefined
+  if (
+    accessToken === undefined &&
+    refreshToken === undefined &&
+    expiresAt === undefined &&
+    accountId === undefined
+  ) {
+    return undefined
+  }
+  return {
+    ...(accessToken !== undefined ? { accessToken } : {}),
+    ...(refreshToken !== undefined ? { refreshToken } : {}),
+    ...(expiresAt !== undefined ? { expiresAt } : {}),
+    ...(accountId !== undefined ? { accountId } : {}),
+  }
+}
+
 function buildProviderSummary(
   provider: ProviderConfig | undefined,
   activeModel: string | undefined,
@@ -239,7 +266,12 @@ function normalizeProviderConfig(value: Record<string, unknown>): ProviderConfig
     apiKey: typeof value.apiKey === 'string' ? value.apiKey : undefined,
     models: dedupeModels(value.models),
     reasoning: normalizeProviderReasoning(value.reasoning),
-    oauth: normalizeGeminiOAuth(value.oauth),
+    oauth:
+      kind === 'openai-like'
+        ? normalizeOpenAIOAuth(value.oauth)
+        : kind === 'gemini-like'
+          ? normalizeGeminiOAuth(value.oauth)
+          : undefined,
   }
 }
 

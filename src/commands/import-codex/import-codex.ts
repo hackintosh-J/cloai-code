@@ -23,9 +23,16 @@ type CodexAuthJson = {
 }
 
 function findCodexAuthJson(): string | null {
-  const candidates = [
-    path.join(process.env.HOME ?? '', '.codex', 'auth.json'),
-  ]
+  const homeCandidates = [
+    process.env.HOME,
+    process.env.USERPROFILE,
+    process.env.HOMEDRIVE && process.env.HOMEPATH
+      ? `${process.env.HOMEDRIVE}${process.env.HOMEPATH}`
+      : undefined,
+  ].filter((value): value is string => typeof value === 'string' && value.length > 0)
+  const candidates = [...new Set(homeCandidates)].map(home =>
+    path.join(home, '.codex', 'auth.json'),
+  )
   for (const p of candidates) {
     if (fs.existsSync(p)) return p
   }
