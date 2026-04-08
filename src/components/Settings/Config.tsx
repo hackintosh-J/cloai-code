@@ -24,7 +24,7 @@ import { isBilledAsExtraUsage } from '../../utils/extraUsage.js';
 import { ClaudeMdExternalIncludesDialog } from '../ClaudeMdExternalIncludesDialog.js';
 import { ChannelDowngradeDialog, type ChannelDowngradeChoice } from '../ChannelDowngradeDialog.js';
 import { Dialog } from '../design-system/Dialog.js';
-import { Select } from '../CustomSelect/index.js';
+import { Select, type OptionWithDescription } from '../CustomSelect/index.js';
 import { OutputStylePicker } from '../OutputStylePicker.js';
 import { LanguagePicker } from '../LanguagePicker.js';
 import { getExternalClaudeMdIncludes, getMemoryFiles, hasExternalClaudeMdIncludes } from 'src/utils/claudemd.js';
@@ -81,7 +81,7 @@ type Setting = (SettingBase & {
   onChange(value: string): void;
   type: 'managedEnum';
 });
-type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates';
+type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates' | 'SamplingTemperature';
 export function Config({
   onClose,
   context,
@@ -107,6 +107,7 @@ export function Config({
   const [customBaseURL, setCustomBaseURL] = useState(getGlobalConfig().customApiEndpoint?.baseURL ?? '');
   const [customApiKey, setCustomApiKey] = useState(getGlobalConfig().customApiEndpoint?.apiKey ?? '');
   const [customModelValue, setCustomModelValue] = useState(getGlobalConfig().customApiEndpoint?.model ?? process.env.ANTHROPIC_MODEL ?? '');
+  const [samplingTemperatureCustomValue, setSamplingTemperatureCustomValue] = useState(() => settingsData?.samplingTemperature !== undefined && typeof settingsData.samplingTemperature === 'number' ? String(settingsData.samplingTemperature) : '1');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(true);
@@ -263,6 +264,9 @@ export function Config({
     });
   }
 
+  const samplingTemperatureValue = settingsData?.samplingTemperature;
+  const samplingTemperatureDisplayValue = samplingTemperatureValue === undefined ? 'default' : typeof samplingTemperatureValue === 'number' ? `custom (${samplingTemperatureValue})` : samplingTemperatureValue;
+
   // TODO: Add MCP servers
   const settingsItems: Setting[] = [
   // Global settings
@@ -369,6 +373,12 @@ export function Config({
         value: modelContextWindowOverride as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS
       });
     }
+  }, {
+    id: 'samplingTemperature',
+    label: 'Sampling temperature',
+    value: samplingTemperatureDisplayValue,
+    type: 'managedEnum' as const,
+    onChange() {}
   }, {
     id: 'spinnerTipsEnabled',
     label: 'Show tips',
@@ -1252,6 +1262,10 @@ export function Config({
     if (settingsData?.autoUpdatesChannel !== initialSettingsData.current?.autoUpdatesChannel) {
       formattedChanges.push(`Set auto-update channel to ${chalk.bold(settingsData?.autoUpdatesChannel ?? 'latest')}`);
     }
+    if (settingsData?.samplingTemperature !== initialSettingsData.current?.samplingTemperature) {
+      const label = settingsData?.samplingTemperature === undefined ? 'Reset sampling temperature to default' : `Set sampling temperature to ${chalk.bold(String(settingsData.samplingTemperature))}`;
+      formattedChanges.push(label);
+    }
     if (formattedChanges.length > 0) {
       onClose(formattedChanges.join('\n'));
     } else {
@@ -1259,11 +1273,33 @@ export function Config({
         display: 'system'
       });
     }
-  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
+  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
 
   // Restore all state stores to their mount-time snapshots. Changes are
   // applied to disk/AppState immediately on toggle, so "cancel" means
   // actively writing the old values back.
+  const samplingTemperatureOptions: OptionWithDescription[] = [{
+    label: 'Default',
+    value: 'default',
+    description: 'Use the existing built-in request behavior.'
+  }, {
+    label: 'Off',
+    value: 'off',
+    description: 'Do not send temperature.'
+  }, {
+    type: 'input',
+    label: 'Custom',
+    value: 'custom',
+    description: 'Send a specific temperature between 0 and 2.',
+    placeholder: '0-2',
+    initialValue: samplingTemperatureCustomValue,
+    onChange: setSamplingTemperatureCustomValue,
+    allowEmptySubmitToCancel: true,
+    showLabelWithValue: true,
+    labelValueSeparator: ': ',
+    resetCursorOnUpdate: true
+  }];
+
   const revertChanges = useCallback(() => {
     // Theme: restores ThemeProvider React state. Must run before the global
     // config overwrite since setTheme internally calls saveGlobalConfig with
@@ -1282,7 +1318,8 @@ export function Config({
       spinnerTipsEnabled: il?.spinnerTipsEnabled,
       prefersReducedMotion: il?.prefersReducedMotion,
       defaultView: il?.defaultView,
-      outputStyle: il?.outputStyle
+      outputStyle: il?.outputStyle,
+      samplingTemperature: il?.samplingTemperature
     });
     const iu = initialUserSettings;
     updateSettingsForSource('userSettings', {
@@ -1337,6 +1374,7 @@ export function Config({
     }
   }, [themeSetting, setTheme, initialLocalSettings, initialUserSettings, initialAppState, initialUserMsgOptIn, setAppState]);
 
+
   // Escape: revert all changes (if any) and close.
   const handleEscape = useCallback(() => {
     if (showSubmenu !== null) {
@@ -1385,7 +1423,7 @@ export function Config({
       }
       return;
     }
-    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language') {
+    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language' || setting_0.id === 'samplingTemperature') {
       // managedEnum items open a submenu — isDirty is set by the submenu's
       // completion callback, not here (submenu may be cancelled).
       switch (setting_0.id) {
@@ -1411,6 +1449,10 @@ export function Config({
           return;
         case 'language':
           setShowSubmenu('Language');
+          setTabsHidden(true);
+          return;
+        case 'samplingTemperature':
+          setShowSubmenu('SamplingTemperature');
           setTabsHidden(true);
           return;
       }
@@ -1739,7 +1781,67 @@ export function Config({
         channel: 'stable' as AnalyticsMetadata_I_VERIFIED_THIS_IS_NOT_CODE_OR_FILEPATHS,
         minimum_version_set: choice === 'stay'
       });
-    }} /> : <Box flexDirection="column" gap={1} marginY={insideModal ? undefined : 1}>
+    }} /> : showSubmenu === 'SamplingTemperature' ? <Dialog title="Sampling temperature" onCancel={() => {
+      setShowSubmenu(null);
+      setTabsHidden(false);
+    }} hideBorder hideInputGuide>
+            <Text>
+              Choose how requests send temperature.
+            </Text>
+            <Text dimColor>
+              Default keeps current behavior. Off omits temperature. Custom sends a number from 0 to 2.
+            </Text>
+            <Select options={samplingTemperatureOptions} onChange={(value: string) => {
+        if (value === 'default') {
+          isDirty.current = true;
+          updateSettingsForSource('localSettings', {
+            samplingTemperature: undefined
+          });
+          setSettingsData(prev_28 => ({
+            ...prev_28,
+            samplingTemperature: undefined
+          }));
+          setShowSubmenu(null);
+          setTabsHidden(false);
+          return;
+        }
+        if (value === 'off') {
+          isDirty.current = true;
+          updateSettingsForSource('localSettings', {
+            samplingTemperature: 'off'
+          });
+          setSettingsData(prev_29 => ({
+            ...prev_29,
+            samplingTemperature: 'off'
+          }));
+          setShowSubmenu(null);
+          setTabsHidden(false);
+          return;
+        }
+        const parsed = Number(samplingTemperatureCustomValue);
+        if (!Number.isFinite(parsed) || parsed < 0 || parsed > 2) {
+          logError(new Error('Sampling temperature must be a number between 0 and 2'));
+          return;
+        }
+        isDirty.current = true;
+        updateSettingsForSource('localSettings', {
+          samplingTemperature: parsed
+        });
+        setSettingsData(prev_30 => ({
+          ...prev_30,
+          samplingTemperature: parsed
+        }));
+        setSamplingTemperatureCustomValue(String(parsed));
+        setShowSubmenu(null);
+        setTabsHidden(false);
+      }} />
+            <Text dimColor>
+              <Byline>
+                <KeyboardShortcutHint shortcut="Enter" action="confirm" />
+                <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+              </Byline>
+            </Text>
+          </Dialog> : <Box flexDirection="column" gap={1} marginY={insideModal ? undefined : 1}>
           <SearchBox query={searchQuery} isFocused={isSearchMode && !headerFocused} isTerminalFocused={isTerminalFocused} cursorOffset={searchCursorOffset} placeholder="Search settings…" />
           <Box flexDirection="column">
             {filteredSettingsItems.length === 0 ? <Text dimColor italic>

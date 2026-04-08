@@ -193,7 +193,7 @@
 然后进入：
 
 ```text
-Config → Context window override
+Config → Context window override / Sampling temperature
 ```
 
 切换方式：
@@ -224,6 +224,25 @@ Config → Context window override
 ```
 
 也就是说，这个 override 默认是**当前项目本地生效**，不会污染全局设置。
+
+也可以在同一位置配置 `Sampling temperature`：
+
+- `default`
+  - 保持当前系统默认行为
+  - 不改变现有 provider 分支逻辑
+- `off`
+  - 明确不发送 `temperature`
+- `custom`
+  - 发送指定数值 `temperature`
+  - 取值范围限制为 `0 <= value <= 2`
+
+这个设置同样默认写入：
+
+```text
+.claude/settings.local.json
+```
+
+如果启用了 Anthropic thinking 模式，仍会继续遵守当前兼容语义：请求中不发送 `temperature`。
 
 #### 2. 直接修改配置文件
 
@@ -547,9 +566,9 @@ cloai
 
 - 修复 `/context` 上下文用量计算不一致的问题，统一 runtime model 下的 autocompact buffer 口径，并在 API usage 缺失或为 0 时正确回退到本地估算，避免显示异常偏小或 0 的总量。
 - 新增 `/context` 顶部来源标记，区分当前总量来自 API usage 还是本地估算，方便判断兼容模型的 usage 是否正常落盘。
-- 新增上下文窗口手动 override：可在 `/config → Context window override` 中通过 **← / → 方向键** 或 **空格键** 在 `Auto / 4k / 32k / 200k / 1M` 之间切换，并写入 `.claude/settings.local.json`。
-- 完善上下文配置说明，补充用户级 / 项目级 / 本地项目级配置文件路径，以及 `modelContextWindowOverride` 的手动配置方式。
-- 修复当 API BaseURL 使用 `IP + 端口` 形式时，兼容 Provider 被错误降级为 Anthropic 路径，导致请求失败的问题。
+- 新增全局采样温度配置：可在 `/config → Sampling temperature` 中选择 `default / off / custom`，并在 custom 模式下输入 `0..2` 的数值，最终统一控制是否发送 `temperature`。
+- 保持 thinking 模式下的兼容语义：即使配置了 `samplingTemperature`，Anthropic thinking 请求仍不会发送 `temperature`。
+- 补充 `samplingTemperature` 的配置说明，包含 `/config` 交互方式、`.claude/settings.local.json` 持久化位置，以及 `default / off / number` 的语义。
 - 修复多轮工具调用与 Plan Mode 自动切换场景下，API 请求异常失败的问题。
 
 ### 2026 年 4 月 4 日更新

@@ -382,6 +382,16 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Override the model context window used for local context accounting. Use auto to follow provider/model detection.',
         ),
+      samplingTemperature: z
+        .union([
+          z.literal('default'),
+          z.literal('off'),
+          z.number().min(0).max(2),
+        ])
+        .optional()
+        .describe(
+          'Override sampling temperature for request construction. Use default to preserve current behavior, off to omit temperature, or a number between 0 and 2.',
+        ),
       // Enterprise allowlist of models
       availableModels: z
         .array(z.string())

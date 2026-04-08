@@ -968,7 +968,7 @@ export function convertAnthropicRequestToOpenAI(input: {
   return {
     model: targetModel,
     messages,
-    temperature: input.temperature,
+    ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
     stream_options: { include_usage: true },
     ...(reasoning?.reasoningEffort
       ? {

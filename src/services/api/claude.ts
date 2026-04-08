@@ -115,6 +115,7 @@ import {
   asSystemPrompt,
   type SystemPrompt,
 } from '../../utils/systemPromptType.js'
+import { getInitialSettings } from '../../utils/settings/settings.js'
 import { tokenCountFromLastAPIResponse } from '../../utils/tokens.js'
 import { getDynamicConfig_BLOCKS_ON_INIT } from '../analytics/growthbook.js'
 import {
@@ -680,6 +681,37 @@ export function assistantMessageToMessageParam(
     role: 'assistant',
     content: message.message.content,
   }
+}
+
+export function resolveSamplingTemperature({
+  hasThinking,
+  temperatureOverride,
+  samplingTemperature = getInitialSettings().samplingTemperature,
+}: {
+  hasThinking: boolean
+  temperatureOverride?: number
+  samplingTemperature?: ReturnType<typeof getInitialSettings>['samplingTemperature']
+}): number | undefined {
+  if (hasThinking) {
+    return undefined
+  }
+
+  if (temperatureOverride !== undefined) {
+    return temperatureOverride
+  }
+
+  if (
+    samplingTemperature === undefined ||
+    samplingTemperature === 'default'
+  ) {
+    return 1
+  }
+
+  if (samplingTemperature === 'off') {
+    return undefined
+  }
+
+  return samplingTemperature
 }
 
 export type Options = {
@@ -1733,9 +1765,10 @@ async function* queryModel(
 
     // Only send temperature when thinking is disabled — the API requires
     // temperature: 1 when thinking is enabled, which is already the default.
-    const temperature = !hasThinking
-      ? (options.temperatureOverride ?? 1)
-      : undefined
+    const temperature = resolveSamplingTemperature({
+      hasThinking,
+      temperatureOverride: options.temperatureOverride,
+    })
 
     lastRequestBetas = betasParams
 
@@ -1784,11 +1817,12 @@ async function* queryModel(
     const logBetas = useBetas ? (queryParams.betas ?? []) : []
     const logThinkingType = queryParams.thinking?.type ?? 'disabled'
     const logEffortValue = queryParams.output_config?.effort
+    const logTemperature = queryParams.temperature
     void options.getToolPermissionContext().then(permissionContext => {
       logAPIQuery({
         model: options.model,
         messagesLength: logMessagesLength,
-        temperature: options.temperatureOverride ?? 1,
+        temperature: logTemperature,
         betas: logBetas,
         permissionMode: permissionContext.mode,
         querySource: options.querySource,
