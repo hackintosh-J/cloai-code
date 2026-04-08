@@ -77,6 +77,22 @@ export function getProviderKeyFromConfig(
   return `${provider.kind}::${provider.id}::${provider.authMode}::${provider.baseURL ?? ''}`
 }
 
+export function normalizeCompatibleBaseURL(
+  baseURL: string | undefined,
+): string | undefined {
+  if (!baseURL) return undefined
+  const trimmed = baseURL.trim()
+  if (!trimmed) return undefined
+
+  // Repair common manual-entry forms like "http:host:port" so URL parsing and
+  // provider routing do not silently degrade to the wrong compat path.
+  if (/^https?:[^/]/i.test(trimmed)) {
+    return trimmed.replace(/^([a-z]+):/i, '$1://')
+  }
+
+  return trimmed
+}
+
 function dedupeModels(models: unknown): string[] {
   if (!Array.isArray(models)) return []
   return [...new Set(models.filter((item): item is string => typeof item === 'string').map(item => item.trim()).filter(Boolean))]
@@ -248,7 +264,9 @@ function buildProviderSummary(
 function normalizeProviderConfig(value: Record<string, unknown>): ProviderConfig | null {
   const kind = normalizeProviderKind(value.kind) ?? normalizeProviderKind(value.id)
   if (!kind) return null
-  const baseURL = typeof value.baseURL === 'string' ? value.baseURL : undefined
+  const baseURL = normalizeCompatibleBaseURL(
+    typeof value.baseURL === 'string' ? value.baseURL : undefined,
+  )
   const authMode =
     typeof value.authMode === 'string'
       ? value.authMode
@@ -277,7 +295,9 @@ function normalizeProviderConfig(value: Record<string, unknown>): ProviderConfig
 
 function migrateLegacyShape(value: Record<string, unknown>): CustomApiStorageData {
   const kind = normalizeLegacyProviderKind(value.provider)
-  const baseURL = typeof value.baseURL === 'string' ? value.baseURL : undefined
+  const baseURL = normalizeCompatibleBaseURL(
+    typeof value.baseURL === 'string' ? value.baseURL : undefined,
+  )
   const providerId = deriveProviderId(baseURL, kind)
   const legacyModel = typeof value.model === 'string' ? value.model : undefined
   const legacySaved = dedupeModels(value.savedModels)

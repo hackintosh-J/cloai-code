@@ -14,7 +14,7 @@ import { OAuthService } from '../services/oauth/index.js';
 import { getOauthAccountInfo, validateForceLoginOrg } from '../utils/auth.js';
 import { getGlobalConfig, saveGlobalConfig } from '../utils/config.js';
 import { normalizeApiKeyForConfig } from '../utils/authPortable.js';
-import { type ProviderConfig, deriveProviderId, getProviderKeyFromConfig, readCustomApiStorage, writeCustomApiStorage } from '../utils/customApiStorage.js';
+import { type ProviderConfig, deriveProviderId, getProviderKeyFromConfig, normalizeCompatibleBaseURL, readCustomApiStorage, writeCustomApiStorage } from '../utils/customApiStorage.js';
 import { logError } from '../utils/log.js';
 import { getSettings_DEPRECATED } from '../utils/settings/settings.js';
 import { Select } from './CustomSelect/select.js';
@@ -571,7 +571,7 @@ export function ConsoleOAuthFlow({
     baseURL?: string;
     apiKey?: string;
   }) => {
-    const nextBaseURL = (input?.baseURL ?? customBaseURL).trim();
+    const nextBaseURL = normalizeCompatibleBaseURL(input?.baseURL ?? customBaseURL);
     const nextApiKey = (input?.apiKey ?? customApiKey).trim();
     const nextModels = normalizeModelsInput(input?.models ?? customModels);
     const nextActiveModel = nextModels[0];
@@ -587,7 +587,7 @@ export function ConsoleOAuthFlow({
       id: providerId,
       kind: providerKind,
       authMode: compatibleAuthMode,
-      baseURL: shouldClearEndpointCredentials ? undefined : nextBaseURL || undefined,
+      baseURL: shouldClearEndpointCredentials ? undefined : nextBaseURL,
       apiKey:
         isBrowserOAuthAuthMode(compatibleAuthMode) || shouldClearEndpointCredentials
           ? undefined
@@ -643,11 +643,11 @@ export function ConsoleOAuthFlow({
         kind: safeOauthStatus.provider,
         id: nextAuthMode === 'oauth' && safeOauthStatus.provider === 'openai-like'
           ? 'openai'
-          : deriveProviderId(customBaseURL.trim() || undefined, safeOauthStatus.provider),
+          : deriveProviderId(normalizeCompatibleBaseURL(customBaseURL), safeOauthStatus.provider),
         authMode: nextAuthMode,
         baseURL: nextAuthMode === 'oauth' || nextAuthMode === 'gemini-cli-oauth'
           ? undefined
-          : customBaseURL.trim() || undefined,
+          : normalizeCompatibleBaseURL(customBaseURL),
       };
       setCompatibleAuthMode(nextAuthMode);
       setCustomApiKey('');
@@ -673,7 +673,7 @@ export function ConsoleOAuthFlow({
       return;
     }
     if (safeOauthStatus.step === 'baseURL') {
-      const nextValue = value.trim();
+      const nextValue = normalizeCompatibleBaseURL(value);
       if (!nextValue) {
         setOAuthStatus({
           state: 'error',
