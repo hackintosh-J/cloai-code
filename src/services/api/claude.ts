@@ -1889,7 +1889,6 @@ async function* queryModel(
               system: params.system,
               messages: params.messages,
               tools: params.tools,
-              temperature: params.temperature,
             })
             const reader = await createOpenAICodexStream(
               {

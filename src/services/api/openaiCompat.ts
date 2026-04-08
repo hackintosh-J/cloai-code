@@ -249,7 +249,6 @@ export type OpenAICodexRequest = {
   text: { verbosity: 'low' | 'medium' | 'high' }
   include: ['reasoning.encrypted_content']
   tool_choice: 'auto'
-  temperature?: number
   tools?: Array<{
     type: 'function'
     name: string
@@ -988,7 +987,6 @@ export function convertAnthropicRequestToOpenAICodex(input: {
   system?: string | Array<{ type?: string; text?: string }>
   messages: BetaMessageParam[]
   tools?: BetaToolUnion[]
-  temperature?: number
 }): OpenAICodexRequest {
   const configuredModel = process.env.ANTHROPIC_MODEL?.trim()
   const targetModel = configuredModel || input.model
@@ -1074,7 +1072,6 @@ export function convertAnthropicRequestToOpenAICodex(input: {
           },
         }
       : {}),
-    ...(input.temperature !== undefined ? { temperature: input.temperature } : {}),
     ...(toolDefinitions
       ? { tools: toolDefinitions }
       : {}),
