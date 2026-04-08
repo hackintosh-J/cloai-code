@@ -2,18 +2,16 @@
 
 <div align="center">
 
-![cloaiCode Model Selector Preview](preview.png)
-
-# cloaiCode
-
-**面向多 Provider 原生接入增强的代码助手 CLI。🚀**
-
-专业、务实、可落地。适合需要稳定接入第三方模型、代理服务与自定义网关的开发环境。🚀
-
-[![Runtime](https://img.shields.io/badge/runtime-Bun%20%2B%20Node-3b82f6)](README.md)
-[![Config](https://img.shields.io/badge/config-~%2F.cloai-8b5cf6)](README.md)
-[![Providers](https://img.shields.io/badge/providers-Anthropic%20%2F%20OpenAI%20compatible-10b981)](README.md)
-[![Status](https://img.shields.io/badge/status-active%20fork-f59e0b)](README.md)
+  <img src="preview.png" alt="cloaiCode Model Selector Preview" />
+  <h1>cloaiCode</h1>
+  <p><strong>面向多 Provider 原生接入增强的代码助手 CLI。🚀</strong></p>
+  <p>专业、务实、可落地。适合需要稳定接入第三方模型、代理服务与自定义网关的开发环境。🚀</p>
+  <p>
+    <a href="README.md"><img src="https://img.shields.io/badge/runtime-Bun%20%2B%20Node-3b82f6" alt="Runtime" /></a>
+    <a href="README.md"><img src="https://img.shields.io/badge/config-~%2F.cloai-8b5cf6" alt="Config" /></a>
+    <a href="README.md"><img src="https://img.shields.io/badge/providers-Anthropic%20%2F%20OpenAI%20compatible-10b981" alt="Providers" /></a>
+    <a href="README.md"><img src="https://img.shields.io/badge/status-active%20fork-f59e0b" alt="Status" /></a>
+  </p>
 
 </div>
 
@@ -454,7 +452,7 @@ cloai
 - 针对部分 OpenAI 兼容路由补充更稳的缓存键支持
 - 支持多模态以及图像粘贴到对话框
 
-<img width="1872" height="643" alt="image" src="https://github.com/user-attachments/assets/d34682db-88be-49f0-af6f-c1e249f1a8fe" />
+![Responses API cache preview](https://github.com/user-attachments/assets/d34682db-88be-49f0-af6f-c1e249f1a8fe)
 
 注：`/chat/completions` 不支持缓存。请确保使用 `/responses` 方式请求，才能命中缓存。支持缓存的模型：
 - `gpt-5.4`, `gpt-5.2`, `gpt-5.1-codex-max`, `gpt-5.1`, `gpt-5.1-codex`, `gpt-5.1-codex-mini`, `gpt-5.1-chat-latest`, `gpt-5`, `gpt-5-codex`, `gpt-4.1`
