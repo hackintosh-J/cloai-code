@@ -6,5 +6,6 @@
  */
 
 export function getClaudeCodeUserAgent(): string {
-  return `claude-code/${MACRO.VERSION}`
+  const override = process.env.CLAUDE_CODE_USER_AGENT?.trim()
+  return override || `claude-code/${MACRO.VERSION}`
 }

@@ -11,6 +11,7 @@ import { createHash } from 'crypto'
 import { type ProviderConfig, getActiveProviderConfig, readCustomApiStorage, writeCustomApiStorage } from '../../utils/customApiStorage.js'
 import { logEvent } from '../analytics/index.js'
 import { splitSysPromptPrefix } from '../../utils/api.js'
+import { getUserAgent } from '../../utils/http.js'
 import { getOpenAIReasoningConfig } from '../../utils/modelReasoning.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { fetchOpenAICodexModels, refreshOpenAIOAuthToken } from '../oauth/client.js'
@@ -1283,6 +1284,7 @@ export async function createOpenAICompatStream(
       headers: {
         'content-type': 'application/json',
         authorization: `Bearer ${config.apiKey}`,
+        'User-Agent': getUserAgent(),
         ...config.headers,
       },
       body: JSON.stringify({ ...request, stream: true }),
@@ -1317,6 +1319,7 @@ export async function createOpenAICodexStream(
       headers: {
         'content-type': 'application/json',
         authorization: `Bearer ${config.apiKey}`,
+        'User-Agent': getUserAgent(),
         ...config.headers,
       },
       body: JSON.stringify(request),
@@ -1351,6 +1354,7 @@ export async function createOpenAIResponsesStream(
       headers: {
         'content-type': 'application/json',
         authorization: `Bearer ${config.apiKey}`,
+        'User-Agent': getUserAgent(),
         ...config.headers,
       },
       body: JSON.stringify(request),

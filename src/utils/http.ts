@@ -16,6 +16,11 @@ import { getWorkload } from './workloadContext.js'
 // WARNING: We rely on `claude-cli` in the user agent for log filtering.
 // Please do NOT change this without making sure that logging also gets updated!
 export function getUserAgent(): string {
+  const override = process.env.CLAUDE_CODE_USER_AGENT?.trim()
+  if (override) {
+    return override
+  }
+
   const agentSdkVersion = process.env.CLAUDE_AGENT_SDK_VERSION
     ? `, agent-sdk/${process.env.CLAUDE_AGENT_SDK_VERSION}`
     : ''
