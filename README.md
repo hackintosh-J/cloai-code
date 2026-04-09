@@ -562,6 +562,12 @@ cloai
 
 ## 详细更新日志
 
+### 2026 年 4 月 9 日更新
+
+- 修复非 Anthropic Provider 下 `/context` 分类统计缺失的问题：OpenAI-compatible、Gemini-compatible 以及后续新增的非 Anthropic Provider 不再依赖 Anthropic token-count 接口，而是统一回退到本地粗略估算，因此 `System prompt`、`System tools`、`Skills` 等分类可以稳定显示。
+- 修复非 Anthropic Provider 下 MCP 输出截断判断失效的问题：当无法调用 Anthropic token counting 时，会回退到本地内容大小估算，避免超大 MCP 输出漏判。
+- Codex OAuth 作为 OpenAI-compatible 路径，同样适用上述粗略估算逻辑。
+
 ### 2026 年 4 月 8 日更新
 
 - 修复 `/context` 上下文用量计算不一致的问题，统一 runtime model 下的 autocompact buffer 口径，并在 API usage 缺失或为 0 时正确回退到本地估算，避免显示异常偏小或 0 的总量。
