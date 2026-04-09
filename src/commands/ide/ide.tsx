@@ -90,7 +90,7 @@ function IDEScreen(t0) {
       t5 = $[11];
     }
     t4 = availableIDEs.map(t5).concat([{
-      label: "None",
+      label: "无",
       value: "None",
       description: undefined
     }]);

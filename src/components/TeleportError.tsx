@@ -145,18 +145,18 @@ export function TeleportError(t0) {
         }
         let t9;
         if ($[16] === Symbol.for("react.memo_cache_sentinel")) {
-          t9 = <Box flexDirection="column"><Text dimColor={true}>Teleport requires a Claude.ai account.</Text><Text dimColor={true}>Your Claude Pro/Max subscription will be used by Claude Code.</Text></Box>;
+          t9 = <Box flexDirection="column"><Text dimColor={true}>Teleport 需要 Claude.ai 账号。</Text><Text dimColor={true}>你的 Claude Pro/Max 订阅将由 Claude Code 使用。</Text></Box>;
           $[16] = t9;
         } else {
           t9 = $[16];
         }
         let t10;
         if ($[17] === Symbol.for("react.memo_cache_sentinel")) {
-          t10 = <Dialog title="Log in to Claude" onCancel={onCancel}>{t9}<Select options={[{
-              label: "Login with Claude account",
+          t10 = <Dialog title="登录 Claude" onCancel={onCancel}>{t9}<Select options={[{
+              label: "使用 Claude 账号登录",
               value: "login"
             }, {
-              label: "Exit",
+              label: "退出",
               value: "exit"
             }]} onChange={handleLoginDialogSelect} /></Dialog>;
           $[17] = t10;

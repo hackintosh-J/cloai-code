@@ -6,7 +6,7 @@ const branch = {
   name: 'branch',
   // 'fork' alias only when /fork doesn't exist as its own command
   aliases: feature('FORK_SUBAGENT') ? [] : ['fork'],
-  description: 'Create a branch of the current conversation at this point',
+  description: '从当前节点创建一个分支会话',
   argumentHint: '[name]',
   load: () => import('./branch.js'),
 } satisfies Command

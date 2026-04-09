@@ -16,3 +16,6 @@ coverage/
 .claude/
 .idea/
 .vscode/
+
+*.md
+docs/

@@ -8,7 +8,7 @@ const copy = {
   type: 'local-jsx',
   name: 'copy',
   description:
-    "Copy Claude's last response to clipboard (or /copy N for the Nth-latest)",
+    '复制 Claude 的上一条回复到剪贴板（或使用 /copy N 复制倒数第 N 条）',
   load: () => import('./copy.js'),
 } satisfies Command
 

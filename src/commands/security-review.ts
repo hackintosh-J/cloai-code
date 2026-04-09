@@ -198,8 +198,8 @@ Your final reply must contain the markdown report and nothing else.`
 export default createMovedToPluginCommand({
   name: 'security-review',
   description:
-    'Complete a security review of the pending changes on the current branch',
-  progressMessage: 'analyzing code changes for security risks',
+    '对当前分支待提交改动执行安全审查',
+  progressMessage: '正在分析代码变更中的安全风险',
   pluginName: 'security-review',
   pluginCommand: 'security-review',
   async getPromptWhileMarketplaceIsPrivate(_args, context) {

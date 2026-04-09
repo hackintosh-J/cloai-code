@@ -130,7 +130,7 @@ function CopyPicker(t0) {
   let t2;
   if ($[0] !== t1) {
     t2 = {
-      label: "Full response",
+      label: "完整回复",
       value: "full" as const,
       description: t1
     };
@@ -144,9 +144,9 @@ function CopyPicker(t0) {
     let t4;
     if ($[5] === Symbol.for("react.memo_cache_sentinel")) {
       t4 = {
-        label: "Always copy full response",
+        label: "始终复制完整回复",
         value: "always" as const,
-        description: "Skip this picker in the future (revert via /config)"
+        description: "以后跳过此选择器（可通过 /config 恢复）"
       };
       $[5] = t4;
     } else {

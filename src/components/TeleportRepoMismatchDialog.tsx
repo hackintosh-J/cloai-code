@@ -57,7 +57,7 @@ export function TeleportRepoMismatchDialog(t0) {
     let t3;
     if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
       t3 = {
-        label: "Cancel",
+        label: "取消",
         value: "cancel"
       };
       $[7] = t3;

@@ -111,25 +111,25 @@ export function ThemePicker(t0) {
   let t10;
   if ($[7] === Symbol.for("react.memo_cache_sentinel")) {
     t10 = [...(feature("AUTO_THEME") ? [{
-      label: "Auto (match terminal)",
+      label: "自动（跟随终端）",
       value: "auto" as const
     }] : []), {
-      label: "Dark mode",
+      label: "深色模式",
       value: "dark"
     }, {
-      label: "Light mode",
+      label: "浅色模式",
       value: "light"
     }, {
-      label: "Dark mode (colorblind-friendly)",
+      label: "深色模式（色盲友好）",
       value: "dark-daltonized"
     }, {
-      label: "Light mode (colorblind-friendly)",
+      label: "浅色模式（色盲友好）",
       value: "light-daltonized"
     }, {
-      label: "Dark mode (ANSI colors only)",
+      label: "深色模式（仅 ANSI 颜色）",
       value: "dark-ansi"
     }, {
-      label: "Light mode (ANSI colors only)",
+      label: "浅色模式（仅 ANSI 颜色）",
       value: "light-ansi"
     }];
     $[7] = t10;

@@ -29,12 +29,12 @@ export function ThinkingToggle(t0) {
   if ($[0] === Symbol.for("react.memo_cache_sentinel")) {
     t1 = [{
       value: "true",
-      label: "Enabled",
-      description: "Claude will think before responding"
+      label: "启用",
+      description: "Claude 会在回复前先进行思考"
     }, {
       value: "false",
-      label: "Disabled",
-      description: "Claude will respond without extended thinking"
+      label: "禁用",
+      description: "Claude 将直接回复，不进行扩展思考"
     }];
     $[0] = t1;
   } else {
