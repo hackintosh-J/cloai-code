@@ -4,6 +4,10 @@ import type { BetaMessageParam as MessageParam } from '@anthropic-ai/sdk/resourc
 // to defer ~279KB of AWS SDK code until a Bedrock call is actually made
 import type { CountTokensCommandInput } from '@aws-sdk/client-bedrock-runtime'
 import { getAPIProvider } from 'src/utils/model/providers.js'
+import {
+  getActiveProviderConfig,
+  readCustomApiStorage,
+} from '../utils/customApiStorage.js'
 import { VERTEX_COUNT_TOKENS_ALLOWED_BETAS } from '../constants/betas.js'
 import type { Attachment } from '../utils/attachments.js'
 import { getModelBetas } from '../utils/betas.js'
@@ -31,6 +35,15 @@ import { withTokenCountVCR } from './vcr.js'
 // API constraint: max_tokens must be greater than thinking.budget_tokens
 const TOKEN_COUNT_THINKING_BUDGET = 1024
 const TOKEN_COUNT_MAX_TOKENS = 2048
+
+function hasAnthropicTokenCountingSupport(): boolean {
+  const activeProvider = getActiveProviderConfig(readCustomApiStorage())
+  if (activeProvider?.kind !== undefined) {
+    return activeProvider.kind === 'anthropic-like'
+  }
+
+  return getAPIProvider() === 'firstParty' || getAPIProvider() === 'bedrock' || getAPIProvider() === 'vertex' || getAPIProvider() === 'foundry'
+}
 
 /**
  * Check if messages contain thinking blocks
@@ -141,6 +154,10 @@ export async function countMessagesTokensWithAPI(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
   tools: Anthropic.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
+  if (!hasAnthropicTokenCountingSupport()) {
+    return null
+  }
+
   return withTokenCountVCR(messages, tools, async () => {
     try {
       const model = getMainLoopModel()
@@ -252,6 +269,10 @@ export async function countTokensViaHaikuFallback(
   messages: Anthropic.Beta.Messages.BetaMessageParam[],
   tools: Anthropic.Beta.Messages.BetaToolUnion[],
 ): Promise<number | null> {
+  if (!hasAnthropicTokenCountingSupport()) {
+    return null
+  }
+
   // Check if messages contain thinking blocks
   const containsThinking = hasThinkingBlocks(messages)
 

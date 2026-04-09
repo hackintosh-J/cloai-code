@@ -255,7 +255,15 @@ export async function countToolDefinitionTokens(
       `countToolDefinitionTokens returned ${result} for ${tools.length} tools: ${toolNames.slice(0, 100)}${toolNames.length > 100 ? '...' : ''}`,
     )
   }
-  return result ?? 0
+
+  if (result !== null) {
+    return result
+  }
+
+  return toolSchemas.reduce(
+    (sum, schema) => sum + roughTokenCountEstimation(jsonStringify(schema)),
+    0,
+  )
 }
 
 /** Extract a human-readable name from a system prompt section's content */
@@ -298,9 +306,10 @@ async function countSystemTokens(
   }
 
   const systemTokenCounts = await Promise.all(
-    namedEntries.map(({ content }) =>
-      countTokensWithFallback([{ role: 'user', content }], []),
-    ),
+    namedEntries.map(async ({ content }) => {
+      const tokens = await countTokensWithFallback([{ role: 'user', content }], [])
+      return tokens ?? roughTokenCountEstimation(content)
+    }),
   )
 
   const systemPromptSections: SystemPromptSectionDetail[] = namedEntries.map(
@@ -345,7 +354,10 @@ async function countMemoryFileTokens(): Promise<{
         [],
       )
 
-      return { file, tokens: tokens || 0 }
+      return {
+        file,
+        tokens: tokens ?? roughTokenCountEstimation(file.content),
+      }
     }),
   )
 
@@ -743,17 +755,19 @@ async function countCustomAgentTokens(agentDefinitions: {
   let agentTokens = 0
 
   const tokenCounts = await Promise.all(
-    customAgents.map(agent =>
-      countTokensWithFallback(
+    customAgents.map(async agent => {
+      const content = [agent.agentType, agent.whenToUse].join(' ')
+      const tokens = await countTokensWithFallback(
         [
           {
             role: 'user',
-            content: [agent.agentType, agent.whenToUse].join(' '),
+            content,
           },
         ],
         [],
-      ),
-    ),
+      )
+      return tokens ?? roughTokenCountEstimation(content)
+    }),
   )
 
   for (const [i, agent] of customAgents.entries()) {
