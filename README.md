@@ -4,8 +4,8 @@
 
   <img src="preview.png" alt="cloaiCode Model Selector Preview" />
   <h1>cloaiCode</h1>
-  <p><strong>面向多 Provider 原生接入增强的代码助手 CLI。🚀</strong></p>
-  <p>专业、务实、可落地。适合需要稳定接入第三方模型、代理服务与自定义网关的开发环境。🚀</p>
+  <p><strong>`cloaiCode` 是原生兼容多个模型供应商的 Claude Code 修改版。🚀</strong></p>
+  <p>兼容 MiniMax-M2.7、GPT-5.4、Codex OAuth、Github Copilot、Google Gemini 等</p>
   <p>
     <a href="README.md"><img src="https://img.shields.io/badge/runtime-Bun%20%2B%20Node-3b82f6" alt="Runtime" /></a>
     <a href="README.md"><img src="https://img.shields.io/badge/config-~%2F.cloai-8b5cf6" alt="Config" /></a>
@@ -31,7 +31,7 @@
 
 ## ✨ 项目简介
 
-`cloaiCode` 是一个面向实际开发场景持续演进的 CLI 分支，是原生兼容多个模型供应商的 Claude Code 修改版。相比原版，我们让**第三方模型接入**做到了可用、好用、易维护。
+`cloaiCode` 是原生兼容多个模型供应商的 Claude Code 修改版。相比原版，我们让**第三方模型接入**做到了可用、好用、易维护。
 
 我们舍弃了对外部切换器的依赖，在原版代码的基础上直接深度扩展了**原生接入能力**。
 
