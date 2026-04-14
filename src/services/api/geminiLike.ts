@@ -92,6 +92,7 @@ const GEMINI_UNRECOGNIZED_RESPONSE_PREFIX =
   'Gemini-compatible API returned an unrecognized response:'
 const GEMINI_UNPARSEABLE_RESPONSE_PREFIX =
   'Gemini-compatible response contained unparseable JSON:'
+const SKIP_THOUGHT_SIGNATURE = 'skip_thought_signature_validator'
 
 type AnyBlock = Record<string, unknown>
 
@@ -369,9 +370,11 @@ export function convertAnthropicRequestToGemini(input: {
       const userParts = mapAnthropicUserBlocksToGeminiParts(
         blocks.filter(block => block.type !== 'tool_result') as AnyBlock[],
       )
-      const parts = [...toolParts, ...userParts]
-      if (parts.length > 0) {
-        contents.push({ role: 'user', parts })
+      if (toolParts.length > 0) {
+        contents.push({ role: 'user', parts: toolParts })
+      }
+      if (userParts.length > 0) {
+        contents.push({ role: 'user', parts: userParts })
       }
       continue
     }
@@ -403,7 +406,14 @@ export function convertAnthropicRequestToGemini(input: {
           const toolName = typeof block.name === 'string' ? block.name : ''
           const toolUseId = typeof block.id === 'string' ? block.id : undefined
           const thoughtSignature =
-            typeof block.signature === 'string' ? block.signature : ''
+            typeof block.signature === 'string' && block.signature.length > 0
+              ? block.signature
+              : undefined
+          const effectiveThoughtSignature =
+            thoughtSignature ??
+            (targetModel.toLowerCase().includes('gemini-3')
+              ? SKIP_THOUGHT_SIGNATURE
+              : undefined)
           if (toolUseId && toolName) {
             toolNameByUseId.set(toolUseId, toolName)
           }
@@ -416,7 +426,9 @@ export function convertAnthropicRequestToGemini(input: {
                   : {},
               id: toolUseId,
             },
-            thoughtSignature,
+            ...(effectiveThoughtSignature
+              ? { thoughtSignature: effectiveThoughtSignature }
+              : {}),
           })
         }
       }
@@ -1303,6 +1315,7 @@ export async function* createAnthropicStreamFromGemini(input: {
                       `toolu_${part.functionCall.name ?? 'gemini'}_${toolIndex}`,
                     name: part.functionCall.name ?? '',
                     input: '',
+                    signature: part.thoughtSignature ?? '',
                   },
                 } as BetaRawMessageStreamEvent
                 yield {
