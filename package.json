@@ -18,7 +18,9 @@
     "dev": "bun run ./src/bootstrap-entry.ts",
     "start": "bun run ./src/bootstrap-entry.ts",
     "version": "bun run ./src/bootstrap-entry.ts --version",
-    "dev:restore-check": "bun run ./src/dev-entry.ts"
+    "dev:restore-check": "bun run ./src/dev-entry.ts",
+    "vscode:check": "node ./packages/cloai-vscode/scripts/check.js",
+    "vscode:package": "npm --prefix ./packages/cloai-vscode run package"
   },
   "bin": {
     "cloai": "./src/bootstrap-entry.ts"

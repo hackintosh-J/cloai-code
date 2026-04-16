@@ -1,4 +1,4 @@
-import { APIError } from '@anthropic-ai/sdk'
+import { APIConnectionError, APIError, APIUserAbortError } from '@anthropic-ai/sdk'
 import type {
   BetaMessage,
   BetaMessageParam,
@@ -304,7 +304,7 @@ export type OpenAIResponsesRequest = {
     parameters?: unknown
   }>
   tool_choice?: 'auto'
-  parallel_tool_calls?: true
+  parallel_tool_calls?: boolean
   temperature?: number
   max_output_tokens?: number
   include?: ['reasoning.encrypted_content']
@@ -331,9 +331,18 @@ type ResponsesStreamEvent =
   | CodexReasoningDeltaEvent
   | CodexReasoningDoneEvent
   | CodexFunctionCallArgumentsDeltaEvent
+  | CodexFunctionCallArgumentsDoneEvent
   | CodexOutputItemDoneEvent
   | CodexErrorEvent
   | { type: string; [key: string]: unknown }
+
+function shouldDisableParallelToolCalls(): boolean {
+  const raw = process.env.CLOAI_OPENAI_PARALLEL_TOOL_CALLS?.trim().toLowerCase()
+  if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') {
+    return false
+  }
+  return true
+}
 
 export type OpenAICodexRequest = {
   model: string
@@ -784,6 +793,7 @@ type CodexResponseCompletedEvent = {
 
 type CodexOutputItemAddedEvent = {
   type: 'response.output_item.added'
+  output_index?: number
   item: {
     type: 'message' | 'function_call'
     id?: string
@@ -797,7 +807,6 @@ type CodexOutputTextDeltaEvent = {
   type: 'response.output_text.delta'
   delta: string
 }
-
 type CodexReasoningDeltaEvent = {
   type: 'response.reasoning_summary_text.delta' | 'response.reasoning_text.delta'
   delta: string
@@ -810,10 +819,24 @@ type CodexReasoningDoneEvent = {
 type CodexFunctionCallArgumentsDeltaEvent = {
   type: 'response.function_call_arguments.delta'
   delta: string
+  output_index?: number
+  item_id?: string
+  id?: string
+  call_id?: string
+}
+
+type CodexFunctionCallArgumentsDoneEvent = {
+  type: 'response.function_call_arguments.done'
+  arguments: string
+  output_index?: number
+  item_id?: string
+  id?: string
+  call_id?: string
 }
 
 type CodexOutputItemDoneEvent = {
   type: 'response.output_item.done'
+  output_index?: number
   item: {
     type: 'message' | 'function_call'
     id?: string
@@ -832,7 +855,10 @@ type CodexStreamEvent =
   | CodexResponseCompletedEvent
   | CodexOutputItemAddedEvent
   | CodexOutputTextDeltaEvent
+  | CodexReasoningDeltaEvent
+  | CodexReasoningDoneEvent
   | CodexFunctionCallArgumentsDeltaEvent
+  | CodexFunctionCallArgumentsDoneEvent
   | CodexOutputItemDoneEvent
   | CodexErrorEvent
   | { type: string; [key: string]: unknown }
@@ -1389,6 +1415,7 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
       ? {
           tools: toolDefinitions,
           tool_choice: 'auto' as const,
+          parallel_tool_calls: !shouldDisableParallelToolCalls(),
           include: ['reasoning.encrypted_content'] as const,
         }
       : {
@@ -1397,41 +1424,149 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
   }
 }
 
+const MAX_STREAM_REQUEST_RETRIES = 2
+const STREAM_REQUEST_BASE_DELAY_MS = 1000
+
+function getRetryAfterDelayMs(headers?: Headers): number | undefined {
+  const retryAfter = headers?.get('retry-after')
+  if (!retryAfter) return undefined
+  const seconds = Number(retryAfter)
+  if (Number.isFinite(seconds) && seconds > 0) {
+    return Math.ceil(seconds * 1000)
+  }
+  return undefined
+}
+
+function isRetryableOpenAIRequestError(error: unknown): boolean {
+  if (error instanceof APIConnectionError) {
+    return true
+  }
+  if (!(error instanceof APIError)) {
+    return false
+  }
+  return (
+    error.status === 403 ||
+    error.status === 408 ||
+    error.status === 409 ||
+    error.status === 429 ||
+    error.status === 500 ||
+    error.status === 502 ||
+    error.status === 503 ||
+    error.status === 504
+  )
+}
+
+function normalizeOpenAIRequestError(error: unknown): Error {
+  if (error instanceof APIUserAbortError || error instanceof APIError) {
+    return error
+  }
+  if (error instanceof Error && error.name === 'AbortError') {
+    return new APIUserAbortError()
+  }
+  return new APIConnectionError({
+    cause: error instanceof Error ? error : new Error(String(error)),
+  })
+}
+
+async function performOpenAIStreamRequest(input: {
+  apiKey: string
+  baseURL: string
+  headers?: Record<string, string>
+  fetch?: typeof globalThis.fetch
+  signal?: AbortSignal
+  path: string
+  body: string
+  errorPrefix: string
+  joinUrl?: (baseURL: string, path: string) => string
+}): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  const joinUrl = input.joinUrl ?? joinBaseUrl
+  let lastError: Error | undefined
+
+  for (let attempt = 0; attempt <= MAX_STREAM_REQUEST_RETRIES; attempt++) {
+    if (input.signal?.aborted) {
+      throw new APIUserAbortError()
+    }
+
+    try {
+      const response = await (input.fetch ?? globalThis.fetch)(
+        joinUrl(input.baseURL, input.path),
+        {
+          method: 'POST',
+          signal: input.signal,
+          headers: {
+            'content-type': 'application/json',
+            authorization: `Bearer ${input.apiKey}`,
+            ...input.headers,
+          },
+          body: input.body,
+        },
+      )
+
+      if (!response.ok || !response.body) {
+        let responseText = ''
+        try {
+          responseText = await response.text()
+        } catch {
+          responseText = ''
+        }
+        const apiError = APIError.generate(
+          response.status,
+          undefined,
+          `${input.errorPrefix} failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
+          response.headers,
+        )
+        if (
+          attempt < MAX_STREAM_REQUEST_RETRIES &&
+          isRetryableOpenAIRequestError(apiError)
+        ) {
+          await sleep(
+            getRetryAfterDelayMs(response.headers) ??
+              STREAM_REQUEST_BASE_DELAY_MS * 2 ** attempt,
+            input.signal,
+          )
+          continue
+        }
+        throw apiError
+      }
+
+      return response.body.getReader()
+    } catch (error) {
+      const normalizedError = normalizeOpenAIRequestError(error)
+      lastError = normalizedError
+      if (
+        attempt < MAX_STREAM_REQUEST_RETRIES &&
+        isRetryableOpenAIRequestError(normalizedError)
+      ) {
+        const delayMs =
+          normalizedError instanceof APIError
+            ? (getRetryAfterDelayMs(normalizedError.headers) ??
+              STREAM_REQUEST_BASE_DELAY_MS * 2 ** attempt)
+            : STREAM_REQUEST_BASE_DELAY_MS * 2 ** attempt
+        await sleep(delayMs, input.signal)
+        continue
+      }
+      throw normalizedError
+    }
+  }
+
+  throw lastError ?? new Error('OpenAI stream request failed')
+}
+
 export async function createOpenAICompatStream(
   config: OpenAICompatConfig,
   request: OpenAIChatRequest,
   signal?: AbortSignal,
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-  const response = await (config.fetch ?? globalThis.fetch)(
-    joinBaseUrl(config.baseURL, '/v1/chat/completions'),
-    {
-      method: 'POST',
-      signal,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${config.apiKey}`,
-        ...config.headers,
-      },
-      body: JSON.stringify({ ...request, stream: true }),
-    },
-  )
-
-  if (!response.ok || !response.body) {
-    let responseText = ''
-    try {
-      responseText = await response.text()
-    } catch {
-      responseText = ''
-    }
-    throw APIError.generate(
-      response.status,
-      undefined,
-      `OpenAI compatible request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
-      response.headers,
-    )
-  }
-
-  return response.body.getReader()
+  return performOpenAIStreamRequest({
+    apiKey: config.apiKey,
+    baseURL: config.baseURL,
+    headers: config.headers,
+    fetch: config.fetch,
+    signal,
+    path: '/v1/chat/completions',
+    body: JSON.stringify({ ...request, stream: true }),
+    errorPrefix: 'OpenAI compatible request',
+  })
 }
 
 export async function createOpenAICodexStream(
@@ -1439,36 +1574,17 @@ export async function createOpenAICodexStream(
   request: OpenAICodexRequest,
   signal?: AbortSignal,
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-  const response = await (config.fetch ?? globalThis.fetch)(
-    resolveCodexUrl(config.baseURL),
-    {
-      method: 'POST',
-      signal,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${config.apiKey}`,
-        ...config.headers,
-      },
-      body: JSON.stringify(request),
-    },
-  )
-
-  if (!response.ok || !response.body) {
-    let responseText = ''
-    try {
-      responseText = await response.text()
-    } catch {
-      responseText = ''
-    }
-    throw APIError.generate(
-      response.status,
-      undefined,
-      `OpenAI Codex request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
-      response.headers,
-    )
-  }
-
-  return response.body.getReader()
+  return performOpenAIStreamRequest({
+    apiKey: config.apiKey,
+    baseURL: '',
+    headers: config.headers,
+    fetch: config.fetch,
+    signal,
+    path: resolveCodexUrl(config.baseURL),
+    body: JSON.stringify(request),
+    errorPrefix: 'OpenAI Codex request',
+    joinUrl: (_baseURL, path) => path,
+  })
 }
 
 export async function createOpenAIResponsesStream(
@@ -1476,36 +1592,16 @@ export async function createOpenAIResponsesStream(
   request: OpenAIResponsesRequest,
   signal?: AbortSignal,
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-  const response = await (config.fetch ?? globalThis.fetch)(
-    joinBaseUrl(config.baseURL, '/v1/responses'),
-    {
-      method: 'POST',
-      signal,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${config.apiKey}`,
-        ...config.headers,
-      },
-      body: JSON.stringify(request),
-    },
-  )
-
-  if (!response.ok || !response.body) {
-    let responseText = ''
-    try {
-      responseText = await response.text()
-    } catch {
-      responseText = ''
-    }
-    throw APIError.generate(
-      response.status,
-      undefined,
-      `OpenAI Responses request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
-      response.headers,
-    )
-  }
-
-  return response.body.getReader()
+  return performOpenAIStreamRequest({
+    apiKey: config.apiKey,
+    baseURL: config.baseURL,
+    headers: config.headers,
+    fetch: config.fetch,
+    signal,
+    path: '/v1/responses',
+    body: JSON.stringify(request),
+    errorPrefix: 'OpenAI Responses request',
+  })
 }
 
 
@@ -1524,36 +1620,17 @@ export async function createCopilotChatStream(
   request: OpenAIChatRequest,
   signal?: AbortSignal,
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-  const response = await (config.fetch ?? globalThis.fetch)(
-    joinRawBaseUrl(config.baseURL, '/chat/completions'),
-    {
-      method: 'POST',
-      signal,
-      headers: {
-        'content-type': 'application/json',
-        authorization: `Bearer ${config.apiKey}`,
-        ...config.headers,
-      },
-      body: JSON.stringify({ ...request, stream: true }),
-    },
-  )
-
-  if (!response.ok || !response.body) {
-    let responseText = ''
-    try {
-      responseText = await response.text()
-    } catch {
-      responseText = ''
-    }
-    throw APIError.generate(
-      response.status,
-      undefined,
-      `GitHub Copilot chat request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
-      response.headers,
-    )
-  }
-
-  return response.body.getReader()
+  return performOpenAIStreamRequest({
+    apiKey: config.apiKey,
+    baseURL: config.baseURL,
+    headers: config.headers,
+    fetch: config.fetch,
+    signal,
+    path: '/chat/completions',
+    body: JSON.stringify({ ...request, stream: true }),
+    errorPrefix: 'GitHub Copilot chat request',
+    joinUrl: joinRawBaseUrl,
+  })
 }
 
 function parseSSEChunk(buffer: string): { events: string[]; remainder: string } {
@@ -1565,9 +1642,19 @@ function parseSSEChunk(buffer: string): { events: string[]; remainder: string } 
 
 const MAX_EMPTY_STREAM_RETRIES = 2
 const EMPTY_STREAM_BASE_DELAY_MS = 500
+const OPENAI_STREAM_RETRYABLE_ERROR_PREFIXES = [
+  '[openaiCompat] failed to parse JSON',
+  '[openaiCompat] invalid stream chunk',
+  '[openaiCompat] chunk missing choices[0]',
+  '[openaiCompat] stream ended unexpectedly before message_stop',
+  '[openaiCompat] responses stream ended unexpectedly before message_stop',
+  '[openaiCompat] retryable responses error',
+] as const
 
 function shouldRetryOpenAIStreamingParseError(message: string): boolean {
-  return message.includes('[openaiCompat] failed to parse JSON')
+  return OPENAI_STREAM_RETRYABLE_ERROR_PREFIXES.some(prefix =>
+    message.includes(prefix),
+  )
 }
 
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
@@ -1900,11 +1987,87 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
   let started = false
   let currentTextIndex: number | null = null
   let currentThinkingIndex: number | null = null
-  let currentToolIndex: number | null = null
   let promptTokens = 0
   let completionTokens = 0
   let stopReason: BetaMessage['stop_reason'] = 'end_turn'
   const allocator = createContentIndexAllocator()
+  type ToolCallState = {
+    index: number
+    id: string
+    name: string
+    arguments: string
+  }
+  const activeToolCalls = new Set<ToolCallState>()
+  const toolCallStateByKey = new Map<string, ToolCallState>()
+
+  const getToolCallKeys = (params: {
+    outputIndex?: number
+    itemId?: string
+    id?: string
+    callId?: string
+  }) => {
+    const keys: string[] = []
+    if (params.outputIndex !== undefined) {
+      keys.push(`output_index:${params.outputIndex}`)
+    }
+    if (params.itemId) {
+      keys.push(`item_id:${params.itemId}`)
+    }
+    if (params.id) {
+      keys.push(`id:${params.id}`)
+    }
+    if (params.callId) {
+      keys.push(`call_id:${params.callId}`)
+    }
+    return keys
+  }
+
+  const registerToolCallState = (state: ToolCallState, keys: string[]) => {
+    for (const key of keys) {
+      toolCallStateByKey.set(key, state)
+    }
+  }
+
+  const unregisterToolCallState = (state: ToolCallState) => {
+    for (const [key, value] of toolCallStateByKey.entries()) {
+      if (value === state) {
+        toolCallStateByKey.delete(key)
+      }
+    }
+    activeToolCalls.delete(state)
+  }
+
+  const resolveToolCallState = (keys: string[]) => {
+    for (const key of keys) {
+      const state = toolCallStateByKey.get(key)
+      if (state) {
+        return state
+      }
+    }
+    if (activeToolCalls.size !== 1) {
+      return null
+    }
+    return activeToolCalls.values().next().value ?? null
+  }
+
+  const appendToolCallArgumentsDelta = (state: ToolCallState, delta: string) => {
+    if (!delta) {
+      return null
+    }
+    state.arguments += delta
+    return delta
+  }
+
+  const syncToolCallArguments = (state: ToolCallState, nextArguments: string) => {
+    if (!nextArguments || nextArguments === state.arguments) {
+      return null
+    }
+    const delta = nextArguments.startsWith(state.arguments)
+      ? nextArguments.slice(state.arguments.length)
+      : nextArguments
+    state.arguments = nextArguments
+    return delta
+  }
 
   while (true) {
     const { done, value } = await input.reader.read()
@@ -1936,13 +2099,27 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
         }
 
         if (event.type === 'error') {
+          const errorMessage =
+            event.message || event.code || JSON.stringify(event)
+          const retryableStatusMatch = errorMessage.match(
+            /\bstatus\s+(403|408|409|429|500|502|503|504)\b/i,
+          )
           throw new Error(
-            `OpenAI Responses error: ${event.message || event.code || JSON.stringify(event)}`,
+            retryableStatusMatch
+              ? `[openaiCompat] retryable responses error: ${errorMessage}`
+              : `OpenAI Responses error: ${errorMessage}`,
           )
         }
         if (event.type === 'response.failed') {
+          const failureMessage =
+            event.response?.error?.message || event.message || 'OpenAI Responses failed'
+          const retryableStatusMatch = failureMessage.match(
+            /\bstatus\s+(403|408|409|429|500|502|503|504)\b/i,
+          )
           throw new Error(
-            event.response?.error?.message || event.message || 'OpenAI Responses failed',
+            retryableStatusMatch
+              ? `[openaiCompat] retryable responses error: ${failureMessage}`
+              : failureMessage,
           )
         }
 
@@ -1982,18 +2159,48 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
             } as BetaRawMessageStreamEvent
           }
           if (event.item.type === 'function_call') {
-            currentToolIndex = allocator.allocate()
-            allocator.markOpen(currentToolIndex)
+            const state: ToolCallState = {
+              index: allocator.allocate(),
+              id: event.item.call_id ?? event.item.id ?? 'toolu_openai',
+              name: event.item.name ?? '',
+              arguments: '',
+            }
+            allocator.markOpen(state.index)
+            activeToolCalls.add(state)
+            registerToolCallState(
+              state,
+              getToolCallKeys({
+                outputIndex: event.output_index,
+                itemId: event.item.id,
+                id: event.item.id,
+                callId: event.item.call_id,
+              }),
+            )
             yield {
               type: 'content_block_start',
-              index: currentToolIndex,
+              index: state.index,
               content_block: {
                 type: 'tool_use',
-                id: event.item.call_id ?? event.item.id ?? 'toolu_openai',
-                name: event.item.name ?? '',
+                id: state.id,
+                name: state.name,
                 input: '',
               },
             } as BetaRawMessageStreamEvent
+            const initialArgumentsDelta = syncToolCallArguments(
+              state,
+              event.item.arguments ?? '',
+            )
+            if (initialArgumentsDelta) {
+              yield {
+                type: 'content_block_delta',
+                index: state.index,
+                delta: {
+                  type: 'input_json_delta',
+                  partial_json: initialArgumentsDelta,
+                },
+              } as BetaRawMessageStreamEvent
+            }
+            stopReason = 'tool_use'
           }
           continue
         }
@@ -2039,18 +2246,57 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
           continue
         }
 
-        if (
-          event.type === 'response.function_call_arguments.delta' &&
-          currentToolIndex !== null
-        ) {
+        if (event.type === 'response.function_call_arguments.delta') {
+          const state = resolveToolCallState(
+            getToolCallKeys({
+              outputIndex: event.output_index,
+              itemId: event.item_id,
+              id: event.id,
+              callId: event.call_id,
+            }),
+          )
+          if (!state) {
+            continue
+          }
+          const delta = appendToolCallArgumentsDelta(state, event.delta)
+          if (!delta) {
+            continue
+          }
           yield {
             type: 'content_block_delta',
-            index: currentToolIndex,
+            index: state.index,
             delta: {
               type: 'input_json_delta',
-              partial_json: event.delta,
+              partial_json: delta,
             },
           } as BetaRawMessageStreamEvent
+          stopReason = 'tool_use'
+          continue
+        }
+
+        if (event.type === 'response.function_call_arguments.done') {
+          const state = resolveToolCallState(
+            getToolCallKeys({
+              outputIndex: event.output_index,
+              itemId: event.item_id,
+              id: event.id,
+              callId: event.call_id,
+            }),
+          )
+          if (!state) {
+            continue
+          }
+          const delta = syncToolCallArguments(state, event.arguments)
+          if (delta) {
+            yield {
+              type: 'content_block_delta',
+              index: state.index,
+              delta: {
+                type: 'input_json_delta',
+                partial_json: delta,
+              },
+            } as BetaRawMessageStreamEvent
+          }
           stopReason = 'tool_use'
           continue
         }
@@ -2060,7 +2306,28 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
             currentTextIndex = null
           }
           if (event.item.type === 'function_call') {
-            currentToolIndex = null
+            const state = resolveToolCallState(
+              getToolCallKeys({
+                outputIndex: event.output_index,
+                itemId: event.item.id,
+                id: event.item.id,
+                callId: event.item.call_id,
+              }),
+            )
+            if (state) {
+              const delta = syncToolCallArguments(state, event.item.arguments ?? '')
+              if (delta) {
+                yield {
+                  type: 'content_block_delta',
+                  index: state.index,
+                  delta: {
+                    type: 'input_json_delta',
+                    partial_json: delta,
+                  },
+                } as BetaRawMessageStreamEvent
+              }
+              unregisterToolCallState(state)
+            }
           }
           continue
         }

@@ -9,6 +9,7 @@ import { findToolByName, type Tools, type ToolUseContext } from '../../Tool.js'
 import { BASH_TOOL_NAME } from '../../tools/BashTool/toolName.js'
 import type { AssistantMessage, Message } from '../../types/message.js'
 import { createChildAbortController } from '../../utils/abortController.js'
+import { logError } from '../../utils/log.js'
 import { runToolUse } from './toolExecution.js'
 
 type MessageUpdate = {
@@ -128,6 +129,9 @@ export class StreamingToolExecutor {
    */
   private canExecuteTool(isConcurrencySafe: boolean): boolean {
     const executingTools = this.tools.filter(t => t.status === 'executing')
+    if (this.toolUseContext.forceSerialToolExecution) {
+      return executingTools.length === 0
+    }
     return (
       executingTools.length === 0 ||
       (isConcurrencySafe && executingTools.every(t => t.isConcurrencySafe))
@@ -344,10 +348,11 @@ export class StreamingToolExecutor {
           break
         }
 
+        const userMessage = update.message?.type === 'user' ? update.message : null
         const isErrorResult =
-          update.message.type === 'user' &&
-          Array.isArray(update.message.message.content) &&
-          update.message.message.content.some(
+          userMessage !== null &&
+          Array.isArray(userMessage.message.content) &&
+          userMessage.message.content.some(
             _ => _.type === 'tool_result' && _.is_error === true,
           )
 
@@ -395,7 +400,36 @@ export class StreamingToolExecutor {
       }
     }
 
-    const promise = collectResults()
+    const promise = collectResults().catch(error => {
+      logError(error)
+      const errorMessage = error instanceof Error ? error.message : String(error)
+      const detailedError = `Internal error while executing tool ${this.getToolDescription(tool)}: ${errorMessage}`
+
+      if (tool.block.name === BASH_TOOL_NAME && !this.siblingAbortController.signal.aborted) {
+        this.hasErrored = true
+        this.erroredToolDescription = this.getToolDescription(tool)
+        this.siblingAbortController.abort('sibling_error')
+      }
+
+      messages.push(
+        createUserMessage({
+          content: [
+            {
+              type: 'tool_result',
+              content: `<tool_use_error>${detailedError}</tool_use_error>`,
+              is_error: true,
+              tool_use_id: tool.id,
+            },
+          ],
+          toolUseResult: detailedError,
+          sourceToolAssistantUUID: tool.assistantMessage.uuid,
+        }),
+      )
+      tool.results = messages
+      tool.contextModifiers = contextModifiers
+      tool.status = 'completed'
+      this.updateInterruptibleState()
+    })
     tool.promise = promise
 
     // Process more queue when done

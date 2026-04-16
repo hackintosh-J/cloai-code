@@ -53,6 +53,7 @@ import {
   createToolUseSummaryMessage,
   createMicrocompactBoundaryMessage,
   stripSignatureBlocks,
+  SYNTHETIC_TOOL_RESULT_PLACEHOLDER,
 } from './utils/messages.js'
 import { generateToolUseSummary } from './services/toolUseSummary/toolUseSummaryGenerator.js'
 import { prependUserContext, appendSystemContext } from './utils/api.js'
@@ -290,6 +291,91 @@ async function* queryLoop(
   // trigger point. Loop-local (not on State) to avoid touching the 7 continue
   // sites.
   let taskBudgetRemaining: number | undefined = undefined
+
+  const transientToolFailurePatterns = [
+    'internal error',
+    'streaming fallback',
+    'tool execution discarded',
+    'tool result missing due to internal error',
+    SYNTHETIC_TOOL_RESULT_PLACEHOLDER.toLowerCase(),
+    'responses stream ended unexpectedly',
+    'stream ended unexpectedly',
+    'socket hang up',
+    'connection reset',
+    'connection closed',
+    'request timed out',
+    'timed out',
+    'timeouterror',
+    'econnreset',
+    'etimedout',
+    'epipe',
+    'temporarily unavailable',
+    'service unavailable',
+  ]
+
+  const isTransientToolFailureText = (text: string): boolean => {
+    const normalized = text.toLowerCase()
+    return transientToolFailurePatterns.some(pattern =>
+      normalized.includes(pattern),
+    )
+  }
+
+  const shouldInjectToolRecoveryMessage = (
+    results: (UserMessage | AttachmentMessage)[],
+  ): boolean =>
+    results.some(result => {
+      if (result.type !== 'user' || !Array.isArray(result.message.content)) {
+        return false
+      }
+      if (
+        typeof result.toolUseResult === 'string' &&
+        isTransientToolFailureText(result.toolUseResult)
+      ) {
+        return true
+      }
+      return result.message.content.some(block => {
+        if (block.type !== 'tool_result' || block.is_error !== true) {
+          return false
+        }
+        const content =
+          typeof block.content === 'string'
+            ? block.content
+            : JSON.stringify(block.content ?? '')
+        return isTransientToolFailureText(content)
+      })
+    })
+
+  const canonicalizeToolLoopValue = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      return value.map(canonicalizeToolLoopValue)
+    }
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([left], [right]) => left.localeCompare(right))
+          .map(([key, nestedValue]) => [
+            key,
+            canonicalizeToolLoopValue(nestedValue),
+          ]),
+      )
+    }
+    return value
+  }
+
+  const getToolLoopFingerprint = (toolUses: ToolUseBlock[]): string =>
+    JSON.stringify(
+      toolUses
+        .map(toolUse =>
+          JSON.stringify({
+            name: toolUse.name,
+            input: canonicalizeToolLoopValue(toolUse.input),
+          }),
+        )
+        .sort(),
+    )
+
+  let lastToolLoopFingerprint: string | undefined = undefined
+  let consecutiveIdenticalToolBatchCount = 0
 
   // Snapshot immutable env/statsig/session state once at entry. See QueryConfig
   // for what's included and why feature() gates are intentionally excluded.
@@ -1726,9 +1812,47 @@ async function* queryLoop(
       }
 
       queryCheckpoint('query_recursive_call')
+      const shouldForceSerialToolExecution = shouldInjectToolRecoveryMessage(
+        toolResults,
+      )
+      const toolLoopFingerprint = getToolLoopFingerprint(toolUseBlocks)
+      if (shouldForceSerialToolExecution) {
+        lastToolLoopFingerprint = undefined
+        consecutiveIdenticalToolBatchCount = 0
+      } else if (toolLoopFingerprint === lastToolLoopFingerprint) {
+        consecutiveIdenticalToolBatchCount += 1
+      } else {
+        lastToolLoopFingerprint = toolLoopFingerprint
+        consecutiveIdenticalToolBatchCount = 1
+      }
+      if (!shouldForceSerialToolExecution && consecutiveIdenticalToolBatchCount >= 4) {
+        const errorMessage =
+          'The model repeated the same tool calls with identical inputs after receiving their results. Stopping to avoid an infinite tool loop. Please retry the request if you still need to continue.'
+        yield createAssistantAPIErrorMessage({
+          content: errorMessage,
+        })
+        return { reason: 'model_error', error: new Error(errorMessage) }
+      }
+      const recoveryMessages = shouldForceSerialToolExecution
+        ? [
+            createUserMessage({
+              content:
+                'One or more tool calls failed transiently or returned incomplete results. Treat every failed tool_result from the previous turn as invalid. Do not reuse or build on those results. If you still need that information, retry only the necessary tool calls. On the next turn, make at most one tool call at a time and wait for its result before issuing another tool call.',
+              isMeta: true,
+            }),
+          ]
+        : []
       const next: State = {
-        messages: [...messagesForQuery, ...assistantMessages, ...toolResults],
-        toolUseContext: toolUseContextWithQueryTracking,
+        messages: [
+          ...messagesForQuery,
+          ...assistantMessages,
+          ...toolResults,
+          ...recoveryMessages,
+        ],
+        toolUseContext: {
+          ...toolUseContextWithQueryTracking,
+          forceSerialToolExecution: shouldForceSerialToolExecution,
+        },
         autoCompactTracking: tracking,
         turnCount: nextTurnCount,
         maxOutputTokensRecoveryCount: 0,

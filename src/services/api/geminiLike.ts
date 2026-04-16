@@ -1,4 +1,4 @@
-import { APIError } from '@anthropic-ai/sdk'
+import { APIConnectionError, APIError, APIUserAbortError } from '@anthropic-ai/sdk'
 import type {
   BetaMessage,
   BetaMessageParam,
@@ -632,6 +632,18 @@ function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   })
 }
 
+function normalizeGeminiRequestError(error: unknown): Error {
+  if (error instanceof APIUserAbortError || error instanceof APIError) {
+    return error
+  }
+  if (error instanceof Error && (error.name === 'AbortError' || error.message === 'Request was aborted')) {
+    return new APIUserAbortError()
+  }
+  return new APIConnectionError({
+    cause: error instanceof Error ? error : new Error(String(error)),
+  })
+}
+
 export async function createGeminiVertexStream(input: {
   apiKey: string
   baseURL: string
@@ -641,40 +653,71 @@ export async function createGeminiVertexStream(input: {
   fetch?: typeof globalThis.fetch
   signal?: AbortSignal
 }): Promise<ReadableStreamDefaultReader<Uint8Array>> {
-  const response = await (input.fetch ?? globalThis.fetch)(
-    buildGeminiVertexEndpoint(
-      input.baseURL,
-      `/models/${encodeURIComponent(input.model)}:streamGenerateContent?alt=sse`,
-    ),
-    {
-      method: 'POST',
-      signal: input.signal,
-      headers: {
-        'content-type': 'application/json',
-        'x-goog-api-key': input.apiKey,
-        accept: 'text/event-stream',
-        ...input.headers,
-      },
-      body: JSON.stringify(input.request),
-    },
-  )
+  let lastError: Error | undefined
 
-  if (!response.ok || !response.body) {
-    let responseText = ''
-    try {
-      responseText = await response.text()
-    } catch {
-      responseText = ''
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (input.signal?.aborted) {
+      throw new APIUserAbortError()
     }
-    throw APIError.generate(
-      response.status,
-      undefined,
-      `Gemini Vertex-compatible request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
-      response.headers,
-    )
+
+    try {
+      const response = await (input.fetch ?? globalThis.fetch)(
+        buildGeminiVertexEndpoint(
+          input.baseURL,
+          `/models/${encodeURIComponent(input.model)}:streamGenerateContent?alt=sse`,
+        ),
+        {
+          method: 'POST',
+          signal: input.signal,
+          headers: {
+            'content-type': 'application/json',
+            'x-goog-api-key': input.apiKey,
+            accept: 'text/event-stream',
+            ...input.headers,
+          },
+          body: JSON.stringify(input.request),
+        },
+      )
+
+      if (response.ok && response.body) {
+        return response.body.getReader()
+      }
+
+      let responseText = ''
+      try {
+        responseText = await response.text()
+      } catch {
+        responseText = ''
+      }
+
+      if (attempt < MAX_RETRIES && isRetryableError(response.status, responseText)) {
+        const delayMs =
+          extractRetryDelay(responseText, response) ?? BASE_DELAY_MS * 2 ** attempt
+        await sleep(delayMs, input.signal)
+        continue
+      }
+
+      throw APIError.generate(
+        response.status,
+        undefined,
+        `Gemini Vertex-compatible request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
+        response.headers,
+      )
+    } catch (error) {
+      const normalizedError = normalizeGeminiRequestError(error)
+      if (normalizedError instanceof APIUserAbortError) {
+        throw normalizedError
+      }
+      lastError = normalizedError
+      if (attempt < MAX_RETRIES && normalizedError instanceof APIConnectionError) {
+        await sleep(BASE_DELAY_MS * 2 ** attempt, input.signal)
+        continue
+      }
+      throw normalizedError
+    }
   }
 
-  return response.body.getReader()
+  throw lastError ?? new Error('Failed to create Gemini Vertex-compatible stream')
 }
 
 export async function fetchGeminiVertexResponse(input: {
@@ -686,41 +729,73 @@ export async function fetchGeminiVertexResponse(input: {
   fetch?: typeof globalThis.fetch
   signal?: AbortSignal
 }): Promise<unknown> {
-  const response = await (input.fetch ?? globalThis.fetch)(
-    buildGeminiVertexEndpoint(
-      input.baseURL,
-      `/models/${encodeURIComponent(input.model)}:generateContent`,
-    ),
-    {
-      method: 'POST',
-      signal: input.signal,
-      headers: {
-        'content-type': 'application/json',
-        'x-goog-api-key': input.apiKey,
-        accept: 'application/json',
-        ...input.headers,
-      },
-      body: JSON.stringify(input.request),
-    },
-  )
+  let lastError: Error | undefined
 
-  if (!response.ok) {
-    let responseText = ''
-    try {
-      responseText = await response.text()
-    } catch {
-      responseText = ''
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    if (input.signal?.aborted) {
+      throw new APIUserAbortError()
     }
-    throw APIError.generate(
-      response.status,
-      undefined,
-      `Gemini Vertex-compatible request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
-      response.headers,
-    )
+
+    try {
+      const response = await (input.fetch ?? globalThis.fetch)(
+        buildGeminiVertexEndpoint(
+          input.baseURL,
+          `/models/${encodeURIComponent(input.model)}:generateContent`,
+        ),
+        {
+          method: 'POST',
+          signal: input.signal,
+          headers: {
+            'content-type': 'application/json',
+            'x-goog-api-key': input.apiKey,
+            accept: 'application/json',
+            ...input.headers,
+          },
+          body: JSON.stringify(input.request),
+        },
+      )
+
+      if (response.ok) {
+        return response.json()
+      }
+
+      let responseText = ''
+      try {
+        responseText = await response.text()
+      } catch {
+        responseText = ''
+      }
+
+      if (attempt < MAX_RETRIES && isRetryableError(response.status, responseText)) {
+        const delayMs =
+          extractRetryDelay(responseText, response) ?? BASE_DELAY_MS * 2 ** attempt
+        await sleep(delayMs, input.signal)
+        continue
+      }
+
+      throw APIError.generate(
+        response.status,
+        undefined,
+        `Gemini Vertex-compatible request failed with status ${response.status}${responseText ? `: ${responseText}` : ''}`,
+        response.headers,
+      )
+    } catch (error) {
+      const normalizedError = normalizeGeminiRequestError(error)
+      if (normalizedError instanceof APIUserAbortError) {
+        throw normalizedError
+      }
+      lastError = normalizedError
+      if (attempt < MAX_RETRIES && normalizedError instanceof APIConnectionError) {
+        await sleep(BASE_DELAY_MS * 2 ** attempt, input.signal)
+        continue
+      }
+      throw normalizedError
+    }
   }
 
-  return response.json()
+  throw lastError ?? new Error('Failed to fetch Gemini Vertex-compatible response')
 }
+
 
 function isAntigravityProvider(provider: ProviderConfig): boolean {
   return provider.variant === 'gemini-antigravity-oauth'

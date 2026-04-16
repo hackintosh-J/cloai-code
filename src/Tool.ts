@@ -264,6 +264,8 @@ export type ToolUseContext = {
     }
   >
   queryTracking?: QueryChainTracking
+  /** Force the next tool batch to execute serially after a transient tool failure. */
+  forceSerialToolExecution?: boolean
   /** Callback factory for requesting interactive prompts from the user.
    * Returns a prompt callback bound to the given source name.
    * Only available in interactive (REPL) contexts. */

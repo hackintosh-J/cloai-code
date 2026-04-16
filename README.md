@@ -19,7 +19,7 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 4 月 13 日**
+更新于 **2026 年 4 月 16 日**
 
 - ⭐ **`/login` 登录体系重写**：新增账号管理、Provider 分组、官方/自定义子菜单、分步配置与 OAuth 回填，整个登录链路从一次性录入升级为可持续管理的闭环。
 - ⭐ **正式支持 GitHub Copilot OAuth**：已实测 `gpt-5-mini`、`claude-haiku-4.5`、`gemini-3-flash-preview`，并补齐 OpenAI OAuth、Google AI Studio、Google Antigravity (OAuth) 等官方线路。
@@ -804,6 +804,10 @@ cloai
 -----
 
 ## 详细更新日志
+
+### 2026 年 4 月 16 日更新
+
+- 同步“近期重要更新”日期为 **2026 年 4 月 16 日**，内容保持不变。
 
 ### 2026 年 4 月 13 日更新
 

@@ -1,5 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 
+import { APIConnectionError } from '@anthropic-ai/sdk'
+
 import {
   convertAnthropicRequestToGemini,
   createAnthropicStreamFromGemini,
@@ -119,6 +121,50 @@ describe('Gemini Vertex-compatible base URL defaults', () => {
     expect(requestedUrl).toBe(
       'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent',
     )
+    expect(response).toEqual({ candidates: [] })
+  })
+})
+
+describe('Gemini transport error conversion', () => {
+  test('createGeminiVertexStream converts fetch connection errors to APIConnectionError', async () => {
+    await expect(
+      createGeminiVertexStream({
+        apiKey: 'test-key',
+        baseURL: 'https://generativelanguage.googleapis.com',
+        model: 'gemini-flash-latest',
+        request: { contents: [] },
+        fetch: async () => {
+          throw new Error(
+            'The socket connection was closed unexpectedly. For more information, pass `verbose: true` in the second argument to fetch()',
+          )
+        },
+      }),
+    ).rejects.toBeInstanceOf(APIConnectionError)
+  })
+
+  test('fetchGeminiVertexResponse retries retryable HTTP errors', async () => {
+    let requestCount = 0
+
+    const response = await fetchGeminiVertexResponse({
+      apiKey: 'test-key',
+      baseURL: 'https://generativelanguage.googleapis.com',
+      model: 'gemini-flash-latest',
+      request: { contents: [] },
+      fetch: async () => {
+        requestCount += 1
+        if (requestCount < 3) {
+          return new Response('Service Unavailable', { status: 503 })
+        }
+        return new Response(JSON.stringify({ candidates: [] }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+      },
+    })
+
+    expect(requestCount).toBe(3)
     expect(response).toEqual({ candidates: [] })
   })
 })
