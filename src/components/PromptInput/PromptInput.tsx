@@ -120,6 +120,7 @@ import { useMaybeTruncateInput } from './useMaybeTruncateInput.js';
 import { usePromptInputPlaceholder } from './usePromptInputPlaceholder.js';
 import { useShowFastIconHint } from './useShowFastIconHint.js';
 import { useSwarmBanner } from './useSwarmBanner.js';
+import { roughTokenCountEstimation } from '../../services/tokenEstimation.js';
 import { isNonSpacePrintable, isVimModeEnabled } from './utils.js';
 type Props = {
   debug: boolean;
@@ -250,6 +251,45 @@ function PromptInput({
     show: false
   });
   const [cursorOffset, setCursorOffset] = useState<number>(input.length);
+  const [tokenCount, setTokenCount] = useState<number>(input.length === 0 ? 0 : roughTokenCountEstimation(input));
+  const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
+  const tokenDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (tokenDebounceTimerRef.current) {
+      clearTimeout(tokenDebounceTimerRef.current);
+      tokenDebounceTimerRef.current = null;
+    }
+
+    if (input.length === 0) {
+      setTokenCount(0);
+      setIsCalculatingTokens(false);
+      return;
+    }
+
+    setIsCalculatingTokens(true);
+
+    tokenDebounceTimerRef.current = setTimeout(() => {
+      const tokens = roughTokenCountEstimation(input);
+      setTokenCount(tokens);
+      setIsCalculatingTokens(false);
+      tokenDebounceTimerRef.current = null;
+    }, 300);
+
+    return () => {
+      if (tokenDebounceTimerRef.current) {
+        clearTimeout(tokenDebounceTimerRef.current);
+      }
+    };
+  }, [input]);
+
+  useEffect(() => {
+    return () => {
+      if (tokenDebounceTimerRef.current) {
+        clearTimeout(tokenDebounceTimerRef.current);
+      }
+    };
+  }, []);
   // Track the last input value set via internal handlers so we can detect
   // external input changes (e.g. speech-to-text injection) and move cursor to end.
   const lastInternalInputRef = React.useRef(input);
@@ -2271,7 +2311,7 @@ function PromptInput({
             {textInputElement}
           </Box>
         </Box>}
-      <PromptInputFooter apiKeyStatus={apiKeyStatus} debug={debug} exitMessage={exitMessage} vimMode={isVimModeEnabled() ? vimMode : undefined} mode={mode} autoUpdaterResult={autoUpdaterResult} isAutoUpdating={isAutoUpdating} verbose={verbose} onAutoUpdaterResult={onAutoUpdaterResult} onChangeIsUpdating={setIsAutoUpdating} suggestions={suggestions} selectedSuggestion={selectedSuggestion} maxColumnWidth={maxColumnWidth} toolPermissionContext={effectiveToolPermissionContext} helpOpen={helpOpen} suppressHint={input.length > 0} isLoading={isLoading} tasksSelected={tasksSelected} teamsSelected={teamsSelected} bridgeSelected={bridgeSelected} tmuxSelected={tmuxSelected} teammateFooterIndex={teammateFooterIndex} ideSelection={ideSelection} mcpClients={mcpClients} isPasting={isPasting} isInputWrapped={isInputWrapped} messages={messages} isSearching={isSearchingHistory} historyQuery={historyQuery} setHistoryQuery={setHistoryQuery} historyFailedMatch={historyFailedMatch} onOpenTasksDialog={isFullscreenEnvEnabled() ? handleOpenTasksDialog : undefined} />
+      <PromptInputFooter apiKeyStatus={apiKeyStatus} debug={debug} exitMessage={exitMessage} vimMode={isVimModeEnabled() ? vimMode : undefined} mode={mode} autoUpdaterResult={autoUpdaterResult} isAutoUpdating={isAutoUpdating} verbose={verbose} onAutoUpdaterResult={onAutoUpdaterResult} onChangeIsUpdating={setIsAutoUpdating} suggestions={suggestions} selectedSuggestion={selectedSuggestion} maxColumnWidth={maxColumnWidth} toolPermissionContext={effectiveToolPermissionContext} helpOpen={helpOpen} suppressHint={input.length > 0} isLoading={isLoading} tasksSelected={tasksSelected} teamsSelected={teamsSelected} bridgeSelected={bridgeSelected} tmuxSelected={tmuxSelected} teammateFooterIndex={teammateFooterIndex} ideSelection={ideSelection} mcpClients={mcpClients} isPasting={isPasting} isInputWrapped={isInputWrapped} messages={messages} isSearching={isSearchingHistory} historyQuery={historyQuery} setHistoryQuery={setHistoryQuery} historyFailedMatch={historyFailedMatch} onOpenTasksDialog={isFullscreenEnvEnabled() ? handleOpenTasksDialog : undefined} tokenCount={tokenCount} isCalculatingTokens={isCalculatingTokens} />
       {isFullscreenEnvEnabled() ? null : autoModeOptInDialog}
       {isFullscreenEnvEnabled() ?
     // position=absolute takes zero layout height so the spinner
