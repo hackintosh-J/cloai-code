@@ -12,6 +12,7 @@ import { logForDebugging } from 'src/utils/debug.js'
 import { logError } from 'src/utils/log.js'
 import { createSystemAPIErrorMessage } from 'src/utils/messages.js'
 import { getAPIProviderForStatsig } from 'src/utils/model/providers.js'
+import { getInitialSettings } from '../../utils/settings/settings.js'
 import {
   clearApiKeyHelperCache,
   clearAwsCredentialsCache,
@@ -98,6 +99,10 @@ const PERSISTENT_RESET_CAP_MS = 6 * 60 * 60 * 1000
 const HEARTBEAT_INTERVAL_MS = 30_000
 
 function isPersistentRetryEnabled(): boolean {
+  const settings = getInitialSettings()
+  if (settings.maxApiRetries === 'always') {
+    return true
+  }
   return feature('UNATTENDED_RETRY')
     ? isEnvTruthy(process.env.CLAUDE_CODE_UNATTENDED_RETRY)
     : false
@@ -793,6 +798,19 @@ function shouldRetry(error: APIError): boolean {
 }
 
 export function getDefaultMaxRetries(): number {
+  const settings = getInitialSettings()
+  const maxApiRetries = settings.maxApiRetries
+
+  if (maxApiRetries === 'off') {
+    return 0
+  }
+  if (typeof maxApiRetries === 'number') {
+    return Math.max(0, maxApiRetries)
+  }
+  if (maxApiRetries === 'always') {
+    return Number.MAX_SAFE_INTEGER
+  }
+
   if (process.env.CLAUDE_CODE_MAX_RETRIES) {
     return parseInt(process.env.CLAUDE_CODE_MAX_RETRIES, 10)
   }
