@@ -1825,7 +1825,7 @@ async function* queryLoop(
         lastToolLoopFingerprint = toolLoopFingerprint
         consecutiveIdenticalToolBatchCount = 1
       }
-      if (!shouldForceSerialToolExecution && consecutiveIdenticalToolBatchCount >= 4) {
+      if (!shouldForceSerialToolExecution && consecutiveIdenticalToolBatchCount >= 5) {
         const errorMessage =
           'The model repeated the same tool calls with identical inputs after receiving their results. Stopping to avoid an infinite tool loop. Please retry the request if you still need to continue.'
         yield createAssistantAPIErrorMessage({
