@@ -81,7 +81,7 @@ type Setting = (SettingBase & {
   onChange(value: string): void;
   type: 'managedEnum';
 });
-type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates' | 'SamplingTemperature';
+type SubMenu = 'Theme' | 'Model' | 'TeammateModel' | 'ExternalIncludes' | 'OutputStyle' | 'ChannelDowngrade' | 'Language' | 'EnableAutoUpdates' | 'SamplingTemperature' | 'MaxConsecutiveIdenticalToolCalls' | 'MaxApiRetries';
 export function Config({
   onClose,
   context,
@@ -108,6 +108,8 @@ export function Config({
   const [customApiKey, setCustomApiKey] = useState(getGlobalConfig().customApiEndpoint?.apiKey ?? '');
   const [customModelValue, setCustomModelValue] = useState(getGlobalConfig().customApiEndpoint?.model ?? process.env.ANTHROPIC_MODEL ?? '');
   const [samplingTemperatureCustomValue, setSamplingTemperatureCustomValue] = useState(() => settingsData?.samplingTemperature !== undefined && typeof settingsData.samplingTemperature === 'number' ? String(settingsData.samplingTemperature) : '1');
+  const [maxConsecutiveIdenticalToolCallsCustomValue, setMaxConsecutiveIdenticalToolCallsCustomValue] = useState(() => settingsData?.maxConsecutiveIdenticalToolCalls !== undefined && typeof settingsData.maxConsecutiveIdenticalToolCalls === 'number' ? String(settingsData.maxConsecutiveIdenticalToolCalls) : '5');
+  const [maxApiRetriesCustomValue, setMaxApiRetriesCustomValue] = useState(() => settingsData?.maxApiRetries !== undefined && typeof settingsData.maxApiRetries === 'number' ? String(settingsData.maxApiRetries) : '15');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [scrollOffset, setScrollOffset] = useState(0);
   const [isSearchMode, setIsSearchMode] = useState(true);
@@ -267,6 +269,12 @@ export function Config({
   const samplingTemperatureValue = settingsData?.samplingTemperature;
   const samplingTemperatureDisplayValue = samplingTemperatureValue === undefined ? 'default' : typeof samplingTemperatureValue === 'number' ? `custom (${samplingTemperatureValue})` : samplingTemperatureValue;
 
+  const maxConsecutiveIdenticalToolCallsValue = settingsData?.maxConsecutiveIdenticalToolCalls;
+  const maxConsecutiveIdenticalToolCallsDisplayValue = maxConsecutiveIdenticalToolCallsValue === undefined || maxConsecutiveIdenticalToolCallsValue === 'default' ? 'default (5)' : typeof maxConsecutiveIdenticalToolCallsValue === 'number' ? `custom (${maxConsecutiveIdenticalToolCallsValue})` : maxConsecutiveIdenticalToolCallsValue;
+
+  const maxApiRetriesValue = settingsData?.maxApiRetries;
+  const maxApiRetriesDisplayValue = maxApiRetriesValue === undefined || maxApiRetriesValue === 'default' ? 'default (15)' : typeof maxApiRetriesValue === 'number' ? `custom (${maxApiRetriesValue})` : maxApiRetriesValue;
+
   // TODO: Add MCP servers
   const settingsItems: Setting[] = [
   // Global settings
@@ -377,6 +385,18 @@ export function Config({
     id: 'samplingTemperature',
     label: 'Sampling temperature',
     value: samplingTemperatureDisplayValue,
+    type: 'managedEnum' as const,
+    onChange() {}
+  }, {
+    id: 'maxConsecutiveIdenticalToolCalls',
+    label: 'Max consecutive identical tool calls',
+    value: maxConsecutiveIdenticalToolCallsDisplayValue,
+    type: 'managedEnum' as const,
+    onChange() {}
+  }, {
+    id: 'maxApiRetries',
+    label: 'Max API retries',
+    value: maxApiRetriesDisplayValue,
     type: 'managedEnum' as const,
     onChange() {}
   }, {
@@ -1266,6 +1286,14 @@ export function Config({
       const label = settingsData?.samplingTemperature === undefined ? 'Reset sampling temperature to default' : `Set sampling temperature to ${chalk.bold(String(settingsData.samplingTemperature))}`;
       formattedChanges.push(label);
     }
+    if (settingsData?.maxConsecutiveIdenticalToolCalls !== initialSettingsData.current?.maxConsecutiveIdenticalToolCalls) {
+      const label = settingsData?.maxConsecutiveIdenticalToolCalls === undefined || settingsData?.maxConsecutiveIdenticalToolCalls === 'default' ? 'Reset max consecutive identical tool calls to default' : `Set max consecutive identical tool calls to ${chalk.bold(String(settingsData.maxConsecutiveIdenticalToolCalls))}`;
+      formattedChanges.push(label);
+    }
+    if (settingsData?.maxApiRetries !== initialSettingsData.current?.maxApiRetries) {
+      const label = settingsData?.maxApiRetries === undefined || settingsData?.maxApiRetries === 'default' ? 'Reset max API retries to default' : `Set max API retries to ${chalk.bold(String(settingsData.maxApiRetries))}`;
+      formattedChanges.push(label);
+    }
     if (formattedChanges.length > 0) {
       onClose(formattedChanges.join('\n'));
     } else {
@@ -1273,7 +1301,7 @@ export function Config({
         display: 'system'
       });
     }
-  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
+  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, settingsData?.maxConsecutiveIdenticalToolCalls, settingsData?.maxApiRetries, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
 
   // Restore all state stores to their mount-time snapshots. Changes are
   // applied to disk/AppState immediately on toggle, so "cancel" means
@@ -1300,6 +1328,50 @@ export function Config({
     resetCursorOnUpdate: true
   }];
 
+  const maxConsecutiveIdenticalToolCallsOptions: OptionWithDescription[] = [{
+    label: 'Default',
+    value: 'default',
+    description: 'Use the built-in limit of 5 consecutive identical tool calls.'
+  }, {
+    type: 'input',
+    label: 'Custom',
+    value: 'custom',
+    description: 'Set a custom maximum number of consecutive identical tool calls.',
+    placeholder: 'Positive integer',
+    initialValue: maxConsecutiveIdenticalToolCallsCustomValue,
+    onChange: setMaxConsecutiveIdenticalToolCallsCustomValue,
+    allowEmptySubmitToCancel: true,
+    showLabelWithValue: true,
+    labelValueSeparator: ': ',
+    resetCursorOnUpdate: true
+  }];
+
+  const maxApiRetriesOptions: OptionWithDescription[] = [{
+    label: 'Default',
+    value: 'default',
+    description: 'Use the built-in limit of 15 retry attempts.'
+  }, {
+    label: 'Off',
+    value: 'off',
+    description: 'Disable retries (0 attempts).'
+  }, {
+    label: 'Always',
+    value: 'always',
+    description: 'Retry indefinitely until the request succeeds.'
+  }, {
+    type: 'input',
+    label: 'Custom',
+    value: 'custom',
+    description: 'Set a custom maximum number of retry attempts.',
+    placeholder: 'Non-negative integer',
+    initialValue: maxApiRetriesCustomValue,
+    onChange: setMaxApiRetriesCustomValue,
+    allowEmptySubmitToCancel: true,
+    showLabelWithValue: true,
+    labelValueSeparator: ': ',
+    resetCursorOnUpdate: true
+  }];
+
   const revertChanges = useCallback(() => {
     // Theme: restores ThemeProvider React state. Must run before the global
     // config overwrite since setTheme internally calls saveGlobalConfig with
@@ -1319,7 +1391,9 @@ export function Config({
       prefersReducedMotion: il?.prefersReducedMotion,
       defaultView: il?.defaultView,
       outputStyle: il?.outputStyle,
-      samplingTemperature: il?.samplingTemperature
+      samplingTemperature: il?.samplingTemperature,
+      maxConsecutiveIdenticalToolCalls: il?.maxConsecutiveIdenticalToolCalls,
+      maxApiRetries: il?.maxApiRetries
     });
     const iu = initialUserSettings;
     updateSettingsForSource('userSettings', {
@@ -1423,7 +1497,7 @@ export function Config({
       }
       return;
     }
-    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language' || setting_0.id === 'samplingTemperature') {
+    if (setting_0.id === 'theme' || setting_0.id === 'model' || setting_0.id === 'teammateDefaultModel' || setting_0.id === 'showExternalIncludesDialog' || setting_0.id === 'outputStyle' || setting_0.id === 'language' || setting_0.id === 'samplingTemperature' || setting_0.id === 'maxConsecutiveIdenticalToolCalls' || setting_0.id === 'maxApiRetries') {
       // managedEnum items open a submenu — isDirty is set by the submenu's
       // completion callback, not here (submenu may be cancelled).
       switch (setting_0.id) {
@@ -1453,6 +1527,14 @@ export function Config({
           return;
         case 'samplingTemperature':
           setShowSubmenu('SamplingTemperature');
+          setTabsHidden(true);
+          return;
+        case 'maxConsecutiveIdenticalToolCalls':
+          setShowSubmenu('MaxConsecutiveIdenticalToolCalls');
+          setTabsHidden(true);
+          return;
+        case 'maxApiRetries':
+          setShowSubmenu('MaxApiRetries');
           setTabsHidden(true);
           return;
       }
@@ -1832,6 +1914,126 @@ export function Config({
           samplingTemperature: parsed
         }));
         setSamplingTemperatureCustomValue(String(parsed));
+        setShowSubmenu(null);
+        setTabsHidden(false);
+      }} />
+            <Text dimColor>
+              <Byline>
+                <KeyboardShortcutHint shortcut="Enter" action="confirm" />
+                <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+              </Byline>
+            </Text>
+          </Dialog> : showSubmenu === 'MaxConsecutiveIdenticalToolCalls' ? <Dialog title="Max consecutive identical tool calls" onCancel={() => {
+      setShowSubmenu(null);
+      setTabsHidden(false);
+    }} hideBorder hideInputGuide>
+            <Text>
+              Set the maximum number of consecutive identical tool calls before stopping.
+            </Text>
+            <Text dimColor>
+              Default uses 5. Custom lets you set a positive integer.
+            </Text>
+            <Select options={maxConsecutiveIdenticalToolCallsOptions} onChange={(value: string) => {
+        if (value === 'default') {
+          isDirty.current = true;
+          updateSettingsForSource('localSettings', {
+            maxConsecutiveIdenticalToolCalls: undefined
+          });
+          setSettingsData(prev_31 => ({
+            ...prev_31,
+            maxConsecutiveIdenticalToolCalls: undefined
+          }));
+          setShowSubmenu(null);
+          setTabsHidden(false);
+          return;
+        }
+        const parsed = Number(maxConsecutiveIdenticalToolCallsCustomValue);
+        if (!Number.isFinite(parsed) || parsed < 1 || !Number.isInteger(parsed)) {
+          logError(new Error('Max consecutive identical tool calls must be a positive integer'));
+          return;
+        }
+        isDirty.current = true;
+        updateSettingsForSource('localSettings', {
+          maxConsecutiveIdenticalToolCalls: parsed
+        });
+        setSettingsData(prev_32 => ({
+          ...prev_32,
+          maxConsecutiveIdenticalToolCalls: parsed
+        }));
+        setMaxConsecutiveIdenticalToolCallsCustomValue(String(parsed));
+        setShowSubmenu(null);
+        setTabsHidden(false);
+      }} />
+            <Text dimColor>
+              <Byline>
+                <KeyboardShortcutHint shortcut="Enter" action="confirm" />
+                <ConfigurableShortcutHint action="confirm:no" context="Settings" fallback="Esc" description="cancel" />
+              </Byline>
+            </Text>
+          </Dialog> : showSubmenu === 'MaxApiRetries' ? <Dialog title="Max API retries" onCancel={() => {
+      setShowSubmenu(null);
+      setTabsHidden(false);
+    }} hideBorder hideInputGuide>
+            <Text>
+              Set the maximum number of API retry attempts.
+            </Text>
+            <Text dimColor>
+              Default uses 15. Off disables retries. Always retries indefinitely. Custom lets you set a non-negative integer.
+            </Text>
+            <Select options={maxApiRetriesOptions} onChange={(value: string) => {
+        if (value === 'default') {
+          isDirty.current = true;
+          updateSettingsForSource('localSettings', {
+            maxApiRetries: undefined
+          });
+          setSettingsData(prev_33 => ({
+            ...prev_33,
+            maxApiRetries: undefined
+          }));
+          setShowSubmenu(null);
+          setTabsHidden(false);
+          return;
+        }
+        if (value === 'off') {
+          isDirty.current = true;
+          updateSettingsForSource('localSettings', {
+            maxApiRetries: 'off'
+          });
+          setSettingsData(prev_34 => ({
+            ...prev_34,
+            maxApiRetries: 'off'
+          }));
+          setShowSubmenu(null);
+          setTabsHidden(false);
+          return;
+        }
+        if (value === 'always') {
+          isDirty.current = true;
+          updateSettingsForSource('localSettings', {
+            maxApiRetries: 'always'
+          });
+          setSettingsData(prev_35 => ({
+            ...prev_35,
+            maxApiRetries: 'always'
+          }));
+          setShowSubmenu(null);
+          setTabsHidden(false);
+          return;
+        }
+        const parsed = Number(maxApiRetriesCustomValue);
+        if (!Number.isFinite(parsed) || parsed < 0 || !Number.isInteger(parsed)) {
+          logError(new Error('Max API retries must be a non-negative integer'));
+          return;
+        }
+        isDirty.current = true;
+        updateSettingsForSource('localSettings', {
+          maxApiRetries: parsed
+        });
+        setSettingsData(prev_36 => ({
+          ...prev_36,
+          maxApiRetries: parsed
+        }));
+        setMaxApiRetriesCustomValue(String(parsed));
         setShowSubmenu(null);
         setTabsHidden(false);
       }} />

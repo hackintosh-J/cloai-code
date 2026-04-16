@@ -392,6 +392,26 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Override sampling temperature for request construction. Use default to preserve current behavior, off to omit temperature, or a number between 0 and 2.',
         ),
+      maxConsecutiveIdenticalToolCalls: z
+        .union([
+          z.literal('default'),
+          z.number().int().positive(),
+        ])
+        .optional()
+        .describe(
+          'Maximum number of consecutive identical tool calls before stopping to avoid infinite loops. Default is 5. Use default to use the built-in limit, or a positive integer for a custom limit.',
+        ),
+      maxApiRetries: z
+        .union([
+          z.literal('default'),
+          z.literal('off'),
+          z.literal('always'),
+          z.number().int().nonnegative(),
+        ])
+        .optional()
+        .describe(
+          'Maximum number of API retry attempts. Default is 15. Use default to use the built-in limit, off to disable retries (0), always for persistent retries, or a non-negative integer for a custom limit.',
+        ),
       // Enterprise allowlist of models
       availableModels: z
         .array(z.string())

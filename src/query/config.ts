@@ -2,6 +2,9 @@ import { getSessionId } from '../bootstrap/state.js'
 import { checkStatsigFeatureGate_CACHED_MAY_BE_STALE } from '../services/analytics/growthbook.js'
 import type { SessionId } from '../types/ids.js'
 import { isEnvTruthy } from '../utils/envUtils.js'
+import { getInitialSettings } from '../utils/settings/settings.js'
+
+const DEFAULT_MAX_CONSECUTIVE_IDENTICAL_TOOL_CALLS = 5
 
 // -- config
 
@@ -24,9 +27,22 @@ export type QueryConfig = {
     isAnt: boolean
     fastModeEnabled: boolean
   }
+
+  // User-configurable settings.
+  settings: {
+    maxConsecutiveIdenticalToolCalls: number
+  }
 }
 
 export function buildQueryConfig(): QueryConfig {
+  const settings = getInitialSettings()
+  const maxConsecutiveIdenticalToolCalls = settings.maxConsecutiveIdenticalToolCalls
+
+  let resolvedMaxConsecutiveIdenticalToolCalls = DEFAULT_MAX_CONSECUTIVE_IDENTICAL_TOOL_CALLS
+  if (typeof maxConsecutiveIdenticalToolCalls === 'number') {
+    resolvedMaxConsecutiveIdenticalToolCalls = Math.max(1, maxConsecutiveIdenticalToolCalls)
+  }
+
   return {
     sessionId: getSessionId(),
     gates: {
@@ -41,6 +57,9 @@ export function buildQueryConfig(): QueryConfig {
       // (axios, settings, auth, model, oauth, config) into test shards that
       // didn't previously load it — changes init order and breaks unrelated tests.
       fastModeEnabled: !isEnvTruthy(process.env.CLAUDE_CODE_DISABLE_FAST_MODE),
+    },
+    settings: {
+      maxConsecutiveIdenticalToolCalls: resolvedMaxConsecutiveIdenticalToolCalls,
     },
   }
 }
