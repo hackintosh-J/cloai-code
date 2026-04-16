@@ -101,7 +101,8 @@ import { runTools } from './services/tools/toolOrchestration.js'
 import { applyToolResultBudget } from './utils/toolResultStorage.js'
 import { recordContentReplacement } from './utils/sessionStorage.js'
 import { handleStopHooks } from './query/stopHooks.js'
-import { buildQueryConfig } from './query/config.js'
+import { buildQueryConfig, DEFAULT_MAX_CONSECUTIVE_IDENTICAL_TOOL_CALLS } from './query/config.js'
+import { getInitialSettings } from './utils/settings/settings.js'
 import { productionDeps, type QueryDeps } from './query/deps.js'
 import type { Terminal, Continue } from './query/transitions.js'
 import { feature } from 'bun:bundle'
@@ -379,7 +380,14 @@ async function* queryLoop(
 
   // Snapshot immutable env/statsig/session state once at entry. See QueryConfig
   // for what's included and why feature() gates are intentionally excluded.
-  const config = buildQueryConfig()
+  const settings = getInitialSettings()
+  let maxConsecutiveIdenticalToolCallsOverride: number | undefined
+  if (typeof settings.maxConsecutiveIdenticalToolCalls === 'number') {
+    maxConsecutiveIdenticalToolCallsOverride = Math.max(1, settings.maxConsecutiveIdenticalToolCalls)
+  }
+  const config = buildQueryConfig({
+    maxConsecutiveIdenticalToolCalls: maxConsecutiveIdenticalToolCallsOverride,
+  })
 
   // Fired once per user turn — the prompt is invariant across loop iterations,
   // so per-iteration firing would ask sideQuery the same question N times.
