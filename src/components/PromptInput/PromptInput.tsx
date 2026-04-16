@@ -120,6 +120,7 @@ import { useMaybeTruncateInput } from './useMaybeTruncateInput.js';
 import { usePromptInputPlaceholder } from './usePromptInputPlaceholder.js';
 import { useShowFastIconHint } from './useShowFastIconHint.js';
 import { useSwarmBanner } from './useSwarmBanner.js';
+import { expandPastedTextRefs, parseReferences } from '../../history.js';
 import { roughTokenCountEstimation } from '../../services/tokenEstimation.js';
 import { isNonSpacePrintable, isVimModeEnabled } from './utils.js';
 type Props = {
@@ -251,7 +252,25 @@ function PromptInput({
     show: false
   });
   const [cursorOffset, setCursorOffset] = useState<number>(input.length);
-  const [tokenCount, setTokenCount] = useState<number>(input.length === 0 ? 0 : roughTokenCountEstimation(input));
+  
+  const calculateTotalTokens = useCallback((text: string, contents: Record<number, PastedContent>): number => {
+    const expandedText = expandPastedTextRefs(text, contents);
+    let tokens = roughTokenCountEstimation(expandedText);
+    
+    const refs = parseReferences(text);
+    for (const ref of refs) {
+      const content = contents[ref.id];
+      if (content?.type === 'image') {
+        tokens += 2000;
+      }
+    }
+    
+    return tokens;
+  }, []);
+
+  const [tokenCount, setTokenCount] = useState<number>(
+    input.length === 0 ? 0 : calculateTotalTokens(input, pastedContents)
+  );
   const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
   const tokenDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -270,7 +289,7 @@ function PromptInput({
     setIsCalculatingTokens(true);
 
     tokenDebounceTimerRef.current = setTimeout(() => {
-      const tokens = roughTokenCountEstimation(input);
+      const tokens = calculateTotalTokens(input, pastedContents);
       setTokenCount(tokens);
       setIsCalculatingTokens(false);
       tokenDebounceTimerRef.current = null;
@@ -281,7 +300,7 @@ function PromptInput({
         clearTimeout(tokenDebounceTimerRef.current);
       }
     };
-  }, [input]);
+  }, [input, pastedContents, calculateTotalTokens]);
 
   useEffect(() => {
     return () => {
