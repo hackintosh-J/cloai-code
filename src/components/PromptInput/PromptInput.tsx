@@ -120,6 +120,7 @@ import { useMaybeTruncateInput } from './useMaybeTruncateInput.js';
 import { usePromptInputPlaceholder } from './usePromptInputPlaceholder.js';
 import { useShowFastIconHint } from './useShowFastIconHint.js';
 import { useSwarmBanner } from './useSwarmBanner.js';
+import { IMAGE_MAX_HEIGHT, IMAGE_MAX_WIDTH } from '../../constants/apiLimits.js';
 import { expandPastedTextRefs, parseReferences } from '../../history.js';
 import { roughTokenCountEstimation } from '../../services/tokenEstimation.js';
 import { isNonSpacePrintable, isVimModeEnabled } from './utils.js';
@@ -253,6 +254,38 @@ function PromptInput({
   });
   const [cursorOffset, setCursorOffset] = useState<number>(input.length);
   
+  const calculateImageTokens = useCallback((pastedContent: PastedContent): number => {
+    if (pastedContent.type !== 'image') {
+      return 0;
+    }
+
+    const dims = pastedContent.dimensions;
+    if (!dims) {
+      return Math.ceil((IMAGE_MAX_WIDTH * IMAGE_MAX_HEIGHT) / 750);
+    }
+
+    let width: number;
+    let height: number;
+
+    if (dims.displayWidth && dims.displayHeight) {
+      width = dims.displayWidth;
+      height = dims.displayHeight;
+    } else if (dims.originalWidth && dims.originalHeight) {
+      width = Math.min(dims.originalWidth, IMAGE_MAX_WIDTH);
+      height = Math.min(dims.originalHeight, IMAGE_MAX_HEIGHT);
+      
+      if (dims.originalWidth > IMAGE_MAX_WIDTH || dims.originalHeight > IMAGE_MAX_HEIGHT) {
+        const ratio = Math.min(IMAGE_MAX_WIDTH / dims.originalWidth, IMAGE_MAX_HEIGHT / dims.originalHeight);
+        width = Math.round(dims.originalWidth * ratio);
+        height = Math.round(dims.originalHeight * ratio);
+      }
+    } else {
+      return Math.ceil((IMAGE_MAX_WIDTH * IMAGE_MAX_HEIGHT) / 750);
+    }
+
+    return Math.ceil((width * height) / 750);
+  }, []);
+
   const calculateTotalTokens = useCallback((text: string, contents: Record<number, PastedContent>): number => {
     const expandedText = expandPastedTextRefs(text, contents);
     let tokens = roughTokenCountEstimation(expandedText);
@@ -261,12 +294,12 @@ function PromptInput({
     for (const ref of refs) {
       const content = contents[ref.id];
       if (content?.type === 'image') {
-        tokens += 2000;
+        tokens += calculateImageTokens(content);
       }
     }
     
     return tokens;
-  }, []);
+  }, [calculateImageTokens]);
 
   const [tokenCount, setTokenCount] = useState<number>(
     input.length === 0 ? 0 : calculateTotalTokens(input, pastedContents)
