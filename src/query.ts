@@ -1691,8 +1691,21 @@ async function* queryLoop(
         const msg = createAttachmentMessage({
           type: 'openai_prefix_debug',
           model: debugAttachment.model,
+          promptCacheKey: debugAttachment.promptCacheKey,
+          payloadPath: debugAttachment.payloadPath,
           sharedPrefixItems: debugAttachment.sharedPrefixItems,
           totalItems: debugAttachment.totalItems,
+          firstDivergenceIndex: debugAttachment.firstDivergenceIndex,
+          dynamicInstructionsHash: debugAttachment.dynamicInstructionsHash,
+          dynamicInstructionsLength: debugAttachment.dynamicInstructionsLength,
+          dynamicSystemContextIndex: debugAttachment.dynamicSystemContextIndex,
+          functionCallOutputCount: debugAttachment.functionCallOutputCount,
+          instructionsHash: debugAttachment.instructionsHash,
+          instructionsLength: debugAttachment.instructionsLength,
+          toolsHash: debugAttachment.toolsHash,
+          inputPrefixHash: debugAttachment.inputPrefixHash,
+          messagesPrefixHash: debugAttachment.messagesPrefixHash,
+          itemSummaries: debugAttachment.itemSummaries,
           usage: debugAttachment.usage
             ? {
                 inputTokens: debugAttachment.usage.inputTokens,

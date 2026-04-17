@@ -524,8 +524,26 @@ export type Attachment =
   | {
       type: 'openai_prefix_debug'
       model: string
+      promptCacheKey?: string
+      payloadPath?: string
       sharedPrefixItems: number
       totalItems: number
+      firstDivergenceIndex?: number
+      dynamicInstructionsHash?: string
+      dynamicInstructionsLength?: number
+      dynamicSystemContextIndex?: number
+      functionCallOutputCount?: number
+      instructionsHash?: string
+      instructionsLength?: number
+      toolsHash?: string
+      inputPrefixHash?: string
+      messagesPrefixHash?: string
+      itemSummaries?: Array<{
+        index: number
+        kind: string
+        textLength: number
+        preview: string
+      }>
       usage?: {
         inputTokens: number
         outputTokens: number

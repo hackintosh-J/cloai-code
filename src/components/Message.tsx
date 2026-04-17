@@ -22,6 +22,7 @@ import { AssistantToolUseMessage } from './messages/AssistantToolUseMessage.js';
 import { AttachmentMessage } from './messages/AttachmentMessage.js';
 import { CollapsedReadSearchContent } from './messages/CollapsedReadSearchContent.js';
 import { CompactBoundaryMessage } from './messages/CompactBoundaryMessage.js';
+import { MicrocompactBoundaryMessage } from './messages/MicrocompactBoundaryMessage.js';
 import { GroupedToolUseContent } from './messages/GroupedToolUseContent.js';
 import { SystemTextMessage } from './messages/SystemTextMessage.js';
 import { UserImageMessage } from './messages/UserImageMessage.js';
@@ -244,7 +245,11 @@ function MessageImpl(t0) {
           return t2;
         }
         if (message.subtype === "microcompact_boundary") {
-          return null;
+          return <MicrocompactBoundaryMessage metadata={message.microcompactMetadata as {
+            trigger?: string;
+            tokensSaved?: number;
+            compactedToolIds?: string[];
+          } | undefined} />;
         }
         if (feature("HISTORY_SNIP")) {
           const {

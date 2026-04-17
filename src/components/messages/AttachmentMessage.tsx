@@ -256,12 +256,59 @@ export function AttachmentMessage({
     case 'diagnostics':
       return <DiagnosticsDisplay attachment={attachment} verbose={verbose} />;
     case 'openai_prefix_debug':
-      if (!attachment.usage || attachment.usage.cachedTokens <= 0) {
-        return null;
+      {
+        const cachedTokens = attachment.usage?.cachedTokens ?? 0;
+        const inputTokens = attachment.usage?.inputTokens ?? 0;
+        const outputTokens = attachment.usage?.outputTokens ?? 0;
+        const sharedPrefixItems = attachment.sharedPrefixItems ?? 0;
+        const totalItems = attachment.totalItems ?? 0;
+        const firstDivergenceIndex = attachment.firstDivergenceIndex ?? -1;
+        const dynamicSystemContextIndex = attachment.dynamicSystemContextIndex ?? -1;
+        const functionCallOutputCount = attachment.functionCallOutputCount ?? 0;
+        const dynamicInstructionsHash = attachment.dynamicInstructionsHash ?? 'none';
+        const dynamicInstructionsLength = attachment.dynamicInstructionsLength ?? 0;
+        const instructionsHash = attachment.instructionsHash ?? 'none';
+        const instructionsLength = attachment.instructionsLength ?? 0;
+        const promptCacheKey = attachment.promptCacheKey ?? 'none';
+        const payloadPath = attachment.payloadPath;
+        const toolsHash = attachment.toolsHash ?? 'none';
+        const inputPrefixHash = attachment.inputPrefixHash ?? 'none';
+        const messagesPrefixHash = attachment.messagesPrefixHash ?? 'none';
+        const itemSummaries = Array.isArray(attachment.itemSummaries) ? attachment.itemSummaries : [];
+        const coveragePct = inputTokens > 0 ? (cachedTokens / inputTokens * 100).toFixed(1) : '0.0';
+        return <Box flexDirection="column" marginTop={addMargin ? 1 : 0} backgroundColor={bg} paddingLeft={2}>
+            <Text color={cachedTokens > 0 ? undefined : 'error'}>
+              {cachedTokens > 0 ? `cached ${formatNumber(cachedTokens)} tokens` : `responses cache miss · input ${formatNumber(inputTokens)} tokens`}
+            </Text>
+            <Text dimColor={true}>
+              {`coverage ${formatNumber(cachedTokens)}/${formatNumber(inputTokens)} (${coveragePct}%) · output ${formatNumber(outputTokens)}`}
+            </Text>
+            <Text dimColor={true}>
+              {`prefix ${sharedPrefixItems}/${totalItems} items · divergence ${firstDivergenceIndex >= 0 ? firstDivergenceIndex : 'none'}`}
+            </Text>
+            <Text dimColor={true}>
+              {`dynamic ctx idx ${dynamicSystemContextIndex >= 0 ? dynamicSystemContextIndex : 'none'} · dynamic chars ${formatNumber(dynamicInstructionsLength)} · tool outputs ${functionCallOutputCount}`}
+            </Text>
+            <Text dimColor={true}>
+              {`prompt_cache_key ${promptCacheKey}`}
+            </Text>
+            {payloadPath ? <Text dimColor={true}>
+                {`payload ${payloadPath}`}
+              </Text> : null}
+            <Text dimColor={true}>
+              {`hashes input ${inputPrefixHash} · messages ${messagesPrefixHash} · tools ${toolsHash}`}
+            </Text>
+            <Text dimColor={true}>
+              {`instructions ${instructionsHash}`}
+            </Text>
+            <Text dimColor={true}>
+              {`instruction chars ${formatNumber(instructionsLength)} · dynamic hash ${dynamicInstructionsHash}`}
+            </Text>
+            {itemSummaries.length > 0 ? <Text dimColor={true}>
+                {`items ${itemSummaries.map(item => `#${item.index} ${item.kind}(${formatNumber(item.textLength)})`).join(' · ')}`}
+              </Text> : null}
+          </Box>;
       }
-      return <Box flexDirection="column" marginTop={addMargin ? 1 : 0} backgroundColor={bg} paddingLeft={2}>
-          <Text dimColor={true}>cached {formatNumber(attachment.usage.cachedTokens)} tokens</Text>
-        </Box>;
     case 'mcp_resource':
       return <Line>
           Read MCP resource <Text bold>{attachment.name}</Text> from{' '}

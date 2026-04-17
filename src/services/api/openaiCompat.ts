@@ -9,12 +9,20 @@ import type {
   BetaUsage,
 } from '@anthropic-ai/sdk/resources/beta/messages/messages.mjs'
 import { createHash } from 'crypto'
+import { mkdir, writeFile } from 'fs/promises'
+import { join } from 'path'
+import { getSessionId } from '../../bootstrap/state.js'
 import { type ProviderConfig, getActiveProviderConfig, readCustomApiStorage, writeCustomApiStorage } from '../../utils/customApiStorage.js'
+import { getUserAgent } from '../../utils/http.js'
+import { getWebSocketTLSOptions } from '../../utils/mtls.js'
+import { getWebSocketProxyAgent } from '../../utils/proxy.js'
+import { getInitialSettings } from '../../utils/settings/settings.js'
 import { logEvent } from '../analytics/index.js'
 import { splitSysPromptPrefix } from '../../utils/api.js'
 import { getOpenAIReasoningConfig } from '../../utils/modelReasoning.js'
 import { asSystemPrompt } from '../../utils/systemPromptType.js'
 import { ensureToolResultPairing } from '../../utils/messages.js'
+import { getClaudeTempDir } from '../../utils/permissions/filesystem.js'
 import {
   enableAllGitHubCopilotModels,
   getGitHubCopilotBaseUrl,
@@ -190,6 +198,7 @@ type OpenAICompatConfig = {
   baseURL: string
   headers?: Record<string, string>
   fetch?: typeof globalThis.fetch
+  enableIncrementalWebSocket?: boolean
 }
 
 type OpenAICodexConfig = {
@@ -314,6 +323,12 @@ export type OpenAIResponsesRequest = {
   }
 }
 
+type OpenAIResponsesWebSocketRequest = OpenAIResponsesRequest & {
+  type: 'response.create'
+  previous_response_id?: string
+  client_metadata?: Record<string, string>
+}
+
 type OpenAIUserInputPart =
   | {
       type: 'input_text'
@@ -407,12 +422,16 @@ type OpenAIPrefixFingerprint = {
   model: string
   instructionsHash: string
   instructionsLength: number
+  dynamicInstructionsHash: string
+  dynamicInstructionsLength: number
   toolsHash: string
   inputPrefixHash: string
   messagesPrefixHash: string
   sharedPrefixItems: number
   totalItems: number
   firstDivergenceIndex: number
+  dynamicSystemContextIndex: number
+  functionCallOutputCount: number
   itemSummaries: Array<{
     index: number
     kind: string
@@ -427,13 +446,225 @@ type OpenAIPrefixFingerprint = {
     hasInputTokensDetails: boolean
     hasPromptTokensDetails: boolean
   }
+  payloadPath?: string
 }
 
 const pendingPrefixDebugAttachments: OpenAIPrefixFingerprint[] = []
 const previousPrefixInputs = new Map<string, string[]>()
+const openAIResponsesWebSocketSessions = new Map<string, OpenAIResponsesWebSocketSession>()
+let openAIPrefixDebugSequence = 0
+const OPENAI_RESPONSES_WEBSOCKETS_BETA_HEADER = 'responses_websockets=2026-02-06'
+const OPENAI_CLIENT_REQUEST_ID_HEADER = 'x-client-request-id'
+
+type OpenAIResponsesWebSocketLike = {
+  readyState: number
+  send(data: string): void
+  close(code?: number, reason?: string): void
+  on(event: string, listener: (...args: any[]) => void): void
+  off?(event: string, listener: (...args: any[]) => void): void
+  removeListener?(event: string, listener: (...args: any[]) => void): void
+}
+
+type OpenAIResponsesWebSocketSession = {
+  websocket?: OpenAIResponsesWebSocketLike
+  connectPromise?: Promise<OpenAIResponsesWebSocketLike>
+  inFlight: boolean
+  lastRequest?: OpenAIResponsesRequest
+  lastResponseId?: string
+  lastResponseItemsAdded: OpenAIResponsesInputItem[]
+}
+
+class OpenAIResponsesWebSocketConnectError extends Error {
+  constructor(
+    message: string,
+    public readonly status?: number,
+  ) {
+    super(message)
+    this.name = 'OpenAIResponsesWebSocketConnectError'
+  }
+}
+
+function isOpenAIPrefixDebugEnabled(): boolean {
+  const env = process.env.CLOAI_OPENAI_PREFIX_DEBUG?.trim().toLowerCase()
+  if (env === '1' || env === 'true' || env === 'yes' || env === 'on') {
+    return true
+  }
+  if (env === '0' || env === 'false' || env === 'no' || env === 'off') {
+    return false
+  }
+  return getInitialSettings().openAIPrefixDebug === true
+}
 
 function hashStableJson(value: unknown): string {
   return createHash('sha256').update(JSON.stringify(value)).digest('hex').slice(0, 12)
+}
+
+function normalizeOpenAIResponsesWebSocketBaseUrl(baseURL: string): string {
+  return joinBaseUrl(baseURL, '/v1/responses')
+    .replace(/^https:/i, 'wss:')
+    .replace(/^http:/i, 'ws:')
+}
+
+function isOpenAIResponsesIncrementalWebSocketEnabled(
+  explicit?: boolean,
+): boolean {
+  if (explicit !== undefined) return explicit
+  return getInitialSettings().openAIResponsesIncrementalWebSocket === true
+}
+
+function getOpenAIResponsesWebSocketSessionKey(
+  config: OpenAICompatConfig,
+  request: OpenAIResponsesRequest,
+): string {
+  return hashStableJson({
+    baseURL: config.baseURL,
+    model: request.model,
+    promptCacheKey: request.prompt_cache_key ?? '',
+    instructions: request.instructions ?? '',
+  })
+}
+
+function getOpenAIResponsesWebSocketSession(
+  config: OpenAICompatConfig,
+  request: OpenAIResponsesRequest,
+): OpenAIResponsesWebSocketSession {
+  const key = getOpenAIResponsesWebSocketSessionKey(config, request)
+  let session = openAIResponsesWebSocketSessions.get(key)
+  if (!session) {
+    session = {
+      inFlight: false,
+      lastResponseItemsAdded: [],
+    }
+    openAIResponsesWebSocketSessions.set(key, session)
+  }
+  return session
+}
+
+function getOpenAIResponsesWebSocketClientRequestId(
+  config: OpenAICompatConfig,
+  request: OpenAIResponsesRequest,
+): string {
+  const headerKey = Object.keys(config.headers ?? {}).find(
+    key => key.toLowerCase() === OPENAI_CLIENT_REQUEST_ID_HEADER,
+  )
+  const configuredId = headerKey ? config.headers?.[headerKey] : undefined
+  return configuredId?.trim() || request.prompt_cache_key || getSessionId()
+}
+
+function buildOpenAIResponsesWebSocketClientMetadata(
+  request: OpenAIResponsesRequest,
+): Record<string, string> {
+  const sessionId = getSessionId()
+  return Object.fromEntries(
+    Object.entries({
+      'x-cloai-session-id': sessionId,
+      'x-cloai-prompt-cache-key': request.prompt_cache_key,
+      'x-cloai-user-agent': getUserAgent(),
+    }).filter(([, value]) => typeof value === 'string' && value.length > 0),
+  )
+}
+
+function stripOpenAIResponsesRequestInput(
+  request: OpenAIResponsesRequest,
+): Omit<OpenAIResponsesRequest, 'input'> {
+  const { input: _input, ...rest } = request
+  return rest
+}
+
+function isOpenAIResponsesInputItemEqual(
+  left: OpenAIResponsesInputItem,
+  right: OpenAIResponsesInputItem,
+): boolean {
+  return JSON.stringify(left) === JSON.stringify(right)
+}
+
+function isDynamicSystemContextResponsesInputItem(
+  item: OpenAIResponsesInputItem,
+): boolean {
+  if (!('role' in item) || item.role !== 'user' || item.content.length !== 1) {
+    return false
+  }
+  const [part] = item.content
+  return (
+    part.type === 'input_text' &&
+    part.text.startsWith('<dynamic_system_context>\n') &&
+    part.text.endsWith('\n</dynamic_system_context>')
+  )
+}
+
+function getOpenAIResponsesIncrementalInput(
+  session: OpenAIResponsesWebSocketSession,
+  request: OpenAIResponsesRequest,
+): OpenAIResponsesInputItem[] | undefined {
+  if (!session.lastRequest || !session.lastResponseId) {
+    return undefined
+  }
+  if (
+    JSON.stringify(stripOpenAIResponsesRequestInput(session.lastRequest)) !==
+    JSON.stringify(stripOpenAIResponsesRequestInput(request))
+  ) {
+    return undefined
+  }
+
+  const baseline = [
+    ...session.lastRequest.input,
+    ...session.lastResponseItemsAdded,
+  ]
+
+  if (baseline.length > request.input.length) {
+    return undefined
+  }
+
+  for (let i = 0; i < baseline.length; i++) {
+    if (!isOpenAIResponsesInputItemEqual(baseline[i], request.input[i])) {
+      return undefined
+    }
+  }
+
+  return request.input.slice(baseline.length)
+}
+
+async function writeOpenAIResponsesPayloadDebugFile(input: {
+  model: string
+  promptCacheKey?: string
+  request: unknown
+}): Promise<string | undefined> {
+  if (!isOpenAIPrefixDebugEnabled()) return undefined
+
+  try {
+    const dir = join(getClaudeTempDir(), 'openai-prefix-debug')
+    await mkdir(dir, { recursive: true })
+    const sequence = String(++openAIPrefixDebugSequence).padStart(4, '0')
+    const filename = `${sequence}-${(input.promptCacheKey ?? 'no-key').slice(0, 12)}-${hashStableJson({
+      model: input.model,
+      request: input.request,
+    })}.json`
+    const payload = {
+      capturedAt: new Date().toISOString(),
+      model: input.model,
+      prompt_cache_key: input.promptCacheKey,
+      request: input.request,
+    }
+    const path = join(dir, filename)
+    await writeFile(path, JSON.stringify(payload, null, 2), 'utf-8')
+    return path
+  } catch {
+    return undefined
+  }
+}
+
+function canonicalizeJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(item => canonicalizeJson(item))
+  }
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nestedValue]) => [key, canonicalizeJson(nestedValue)]),
+    )
+  }
+  return value
 }
 
 function serializePrefixItems(value: unknown): string[] {
@@ -558,16 +789,8 @@ function appendDynamicInstructionsToChatMessage(
 function appendDynamicInstructionsToResponsesInput(
   input: OpenAIResponsesInputItem[],
   dynamicInstructions?: string,
-): void {
-  if (!dynamicInstructions) return
-
-  for (let i = input.length - 1; i >= 0; i--) {
-    const item = input[i]
-    if ('role' in item && item.role === 'user') {
-      appendDynamicInstructionsToTextParts(item.content, dynamicInstructions)
-      return
-    }
-  }
+): number {
+  if (!dynamicInstructions) return -1
 
   input.push({
     role: 'user',
@@ -578,6 +801,7 @@ function appendDynamicInstructionsToResponsesInput(
       },
     ],
   })
+  return input.length - 1
 }
 
 function appendDynamicInstructionsToCodexInput(
@@ -609,11 +833,16 @@ function logOpenAIPrefixFingerprint(input: {
   requestShape: 'chat' | 'responses' | 'codex'
   model: string
   instructions?: string
+  dynamicInstructions?: string
   tools?: unknown
   inputItems?: unknown
   messages?: unknown
   promptCacheKey?: string
+  dynamicSystemContextIndex?: number
+  payloadPath?: string
 }): void {
+  if (!isOpenAIPrefixDebugEnabled()) return
+
   const items = Array.isArray(input.inputItems)
     ? input.inputItems
     : Array.isArray(input.messages)
@@ -629,14 +858,26 @@ function logOpenAIPrefixFingerprint(input: {
     model: input.model,
     instructionsHash: input.instructions ? hashStableJson(input.instructions) : '',
     instructionsLength: input.instructions?.length ?? 0,
+    dynamicInstructionsHash: input.dynamicInstructions
+      ? hashStableJson(input.dynamicInstructions)
+      : '',
+    dynamicInstructionsLength: input.dynamicInstructions?.length ?? 0,
     toolsHash: input.tools ? hashStableJson(input.tools) : '',
     inputPrefixHash: input.inputItems ? hashStableJson(input.inputItems) : '',
     messagesPrefixHash: input.messages ? hashStableJson(input.messages) : '',
     sharedPrefixItems: compared.sharedPrefixItems,
     totalItems: compared.totalItems,
     firstDivergenceIndex: compared.firstDivergenceIndex,
+    dynamicSystemContextIndex: input.dynamicSystemContextIndex ?? -1,
+    functionCallOutputCount: items.filter(
+      item =>
+        !!item &&
+        typeof item === 'object' &&
+        (item as Record<string, unknown>).type === 'function_call_output',
+    ).length,
     itemSummaries: buildPrefixItemSummaries(items),
     promptCacheKey: input.promptCacheKey,
+    payloadPath: input.payloadPath,
   }
   pendingPrefixDebugAttachments.push(fingerprint)
   logEvent('tengu_openai_prefix_fingerprint', {
@@ -644,6 +885,8 @@ function logOpenAIPrefixFingerprint(input: {
     model: fingerprint.model,
     instructions_hash: fingerprint.instructionsHash,
     instructions_length: fingerprint.instructionsLength,
+    dynamic_instructions_hash: fingerprint.dynamicInstructionsHash,
+    dynamic_instructions_length: fingerprint.dynamicInstructionsLength,
     tools_hash: fingerprint.toolsHash,
     input_prefix_hash: fingerprint.inputPrefixHash,
     messages_prefix_hash: fingerprint.messagesPrefixHash,
@@ -651,6 +894,8 @@ function logOpenAIPrefixFingerprint(input: {
     shared_prefix_items: fingerprint.sharedPrefixItems,
     total_items: fingerprint.totalItems,
     first_divergence_index: fingerprint.firstDivergenceIndex,
+    dynamic_system_context_index: fingerprint.dynamicSystemContextIndex,
+    function_call_output_count: fingerprint.functionCallOutputCount,
   })
 }
 
@@ -1159,7 +1404,8 @@ export function convertAnthropicRequestToOpenAICodex(input: {
   const pairedMessages = ensureToolResultPairing(sanitizedMessages)
   const toolDefinitions = getCodexToolDefinitions(input.tools)
 
-  for (const message of pairedMessages) {
+  for (let index = 0; index < pairedMessages.length; index++) {
+    const message = pairedMessages[index]!
     if (message.role === 'user') {
       const blocks = toBlocks(message.content)
       let pendingUserContent: OpenAIUserInputPart[] = []
@@ -1188,6 +1434,22 @@ export function convertAnthropicRequestToOpenAICodex(input: {
     }
 
     if (message.role === 'assistant') {
+      const nextToolResultBlocks = getToolResultOnlyBlocks(pairedMessages[index + 1])
+      const toolResultsById = nextToolResultBlocks
+        ? new Map(
+            nextToolResultBlocks.flatMap(block => {
+              const toolUseId =
+                typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined
+              if (!toolUseId) return []
+              return [[
+                toolUseId,
+                typeof block.content === 'string'
+                  ? block.content
+                  : JSON.stringify(block.content),
+              ] as const]
+            }),
+          )
+        : undefined
       const blocks = Array.isArray(message.content)
         ? (message.content as unknown as AnyBlock[])
         : []
@@ -1209,9 +1471,20 @@ export function convertAnthropicRequestToOpenAICodex(input: {
                 ? block.input
                 : JSON.stringify(block.input ?? {}),
           })
+          const toolResultOutput = toolResultsById?.get(String(block.id))
+          if (toolResultOutput !== undefined) {
+            codexInput.push({
+              type: 'function_call_output',
+              call_id: String(block.id),
+              output: toolResultOutput,
+            })
+          }
         }
       }
       pushCodexAssistantContent(codexInput, pendingText)
+      if (nextToolResultBlocks) {
+        index += 1
+      }
     }
   }
 
@@ -1254,10 +1527,29 @@ function getResponsesToolDefinitions(
       name,
       description:
         typeof record.description === 'string' ? record.description : undefined,
-      parameters: record.input_schema,
+      parameters: canonicalizeJson(record.input_schema),
     }]
   })
-  return mapped.length > 0 ? mapped : undefined
+  return mapped.length > 0
+    ? mapped.sort((left, right) => left.name.localeCompare(right.name))
+    : undefined
+}
+
+function getResponsesConversationAnchor(
+  items: OpenAIResponsesInputItem[],
+): string {
+  for (const item of items) {
+    if (!('role' in item) || item.role !== 'user') continue
+    const parts = item.content.map(part =>
+      part.type === 'input_text'
+        ? { type: 'text', text: part.text }
+        : { type: 'image', image_url: part.image_url },
+    )
+    if (parts.length > 0) {
+      return hashStableJson(parts)
+    }
+  }
+  return ''
 }
 
 function pushResponsesUserContent(
@@ -1304,6 +1596,25 @@ function pushCodexAssistantContent(
   })
 }
 
+function getToolResultOnlyBlocks(
+  message: BetaMessageParam | undefined,
+): Array<{
+  type: 'tool_result'
+  tool_use_id?: string
+  content?: unknown
+}> | undefined {
+  if (!message || message.role !== 'user') return undefined
+  const blocks = toBlocks(message.content)
+  if (blocks.length === 0 || blocks.some(block => block.type !== 'tool_result')) {
+    return undefined
+  }
+  return blocks as Array<{
+    type: 'tool_result'
+    tool_use_id?: string
+    content?: unknown
+  }>
+}
+
 export function convertAnthropicRequestToOpenAIResponses(input: {
   model: string
   system?: string | Array<{ type?: string; text?: string }>
@@ -1312,6 +1623,7 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
   tool_choice?: BetaToolChoiceAuto | BetaToolChoiceTool
   temperature?: number
   max_tokens?: number
+  cacheScopeKey?: string
 }): OpenAIResponsesRequest {
   const configuredModel = process.env.ANTHROPIC_MODEL?.trim()
   const targetModel = configuredModel || input.model
@@ -1319,24 +1631,25 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
   const { instructions, dynamicInstructions } = splitOpenAISystemPrompt(
     input.system,
   )
-  const responseInput: OpenAIResponsesInputItem[] = []
+  const fullResponseInput: OpenAIResponsesInputItem[] = []
   const sanitizedMessages = stripAnthropicSignatureBlocks(input.messages)
   const pairedMessages = ensureToolResultPairing(sanitizedMessages)
   const toolDefinitions = getResponsesToolDefinitions(input.tools)
 
-  for (const message of pairedMessages) {
+  for (let index = 0; index < pairedMessages.length; index++) {
+    const message = pairedMessages[index]!
     if (message.role === 'user') {
       const blocks = toBlocks(message.content)
       let pendingUserContent: OpenAIUserInputPart[] = []
       for (const block of blocks) {
         if (block.type === 'tool_result') {
-          pushResponsesUserContent(responseInput, pendingUserContent)
+          pushResponsesUserContent(fullResponseInput, pendingUserContent)
           pendingUserContent = []
           const toolUseId =
             typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined
           if (!toolUseId) continue
           const content = block.content
-          responseInput.push({
+          fullResponseInput.push({
             type: 'function_call_output',
             call_id: toolUseId,
             output:
@@ -1348,11 +1661,27 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
           ...mapAnthropicUserBlocksToOpenAIInputContent([block] as AnyBlock[]),
         )
       }
-      pushResponsesUserContent(responseInput, pendingUserContent)
+      pushResponsesUserContent(fullResponseInput, pendingUserContent)
       continue
     }
 
     if (message.role === 'assistant') {
+      const nextToolResultBlocks = getToolResultOnlyBlocks(pairedMessages[index + 1])
+      const toolResultsById = nextToolResultBlocks
+        ? new Map(
+            nextToolResultBlocks.flatMap(block => {
+              const toolUseId =
+                typeof block.tool_use_id === 'string' ? block.tool_use_id : undefined
+              if (!toolUseId) return []
+              return [[
+                toolUseId,
+                typeof block.content === 'string'
+                  ? block.content
+                  : JSON.stringify(block.content),
+              ] as const]
+            }),
+          )
+        : undefined
       const blocks = Array.isArray(message.content)
         ? (message.content as unknown as AnyBlock[])
         : []
@@ -1363,9 +1692,9 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
           continue
         }
         if (block.type === 'tool_use') {
-          pushResponsesAssistantContent(responseInput, pendingText)
+          pushResponsesAssistantContent(fullResponseInput, pendingText)
           pendingText = ''
-          responseInput.push({
+          fullResponseInput.push({
             type: 'function_call',
             call_id: String(block.id),
             name: String(block.name),
@@ -1374,14 +1703,31 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
                 ? block.input
                 : JSON.stringify(block.input ?? {}),
           })
+          const toolResultOutput = toolResultsById?.get(String(block.id))
+          if (toolResultOutput !== undefined) {
+            fullResponseInput.push({
+              type: 'function_call_output',
+              call_id: String(block.id),
+              output: toolResultOutput,
+            })
+          }
         }
       }
-      pushResponsesAssistantContent(responseInput, pendingText)
+      pushResponsesAssistantContent(fullResponseInput, pendingText)
+      if (nextToolResultBlocks) {
+        index += 1
+      }
     }
   }
 
-  appendDynamicInstructionsToResponsesInput(responseInput, dynamicInstructions)
+  const dynamicSystemContextIndex = appendDynamicInstructionsToResponsesInput(
+    fullResponseInput,
+    dynamicInstructions,
+  )
+  const conversationAnchor = getResponsesConversationAnchor(fullResponseInput)
   const promptCacheKey = hashStableJson({
+    cacheScopeKey: input.cacheScopeKey ?? 'global',
+    conversationAnchor,
     model: targetModel,
     instructions: instructions ?? '',
     tools: toolDefinitions ?? [],
@@ -1390,15 +1736,21 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
     requestShape: 'responses',
     model: targetModel,
     instructions,
+    dynamicInstructions,
     tools: toolDefinitions,
-    inputItems: responseInput,
+    inputItems: fullResponseInput,
     promptCacheKey,
+    dynamicSystemContextIndex:
+      fullResponseInput.length > 0 &&
+      isDynamicSystemContextResponsesInputItem(fullResponseInput[fullResponseInput.length - 1])
+        ? fullResponseInput.length - 1
+        : dynamicSystemContextIndex,
   })
 
   return {
     model: targetModel,
     ...(instructions ? { instructions } : {}),
-    input: responseInput,
+    input: fullResponseInput,
     store: false,
     stream: true,
     prompt_cache_key: promptCacheKey,
@@ -1592,6 +1944,39 @@ export async function createOpenAIResponsesStream(
   request: OpenAIResponsesRequest,
   signal?: AbortSignal,
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  if (isOpenAIResponsesIncrementalWebSocketEnabled(config.enableIncrementalWebSocket)) {
+    return createOpenAIResponsesWebSocketStream(config, request, signal).catch(error => {
+      const reason =
+        error instanceof OpenAIResponsesWebSocketConnectError
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : String(error)
+      throw new Error(
+        `OpenAI Responses incremental websocket failed: ${reason}. Disable "OpenAI responses incremental websocket" in /config to return to HTTP replay.`,
+      )
+    })
+  }
+
+  const payloadPath = await writeOpenAIResponsesPayloadDebugFile({
+    model: request.model,
+    promptCacheKey: request.prompt_cache_key,
+    request,
+  })
+  if (payloadPath) {
+    for (let i = pendingPrefixDebugAttachments.length - 1; i >= 0; i--) {
+      const attachment = pendingPrefixDebugAttachments[i]
+      if (
+        attachment.requestShape === 'responses' &&
+        attachment.model === request.model &&
+        attachment.promptCacheKey === request.prompt_cache_key
+      ) {
+        attachment.payloadPath = payloadPath
+        break
+      }
+    }
+  }
+
   return performOpenAIStreamRequest({
     apiKey: config.apiKey,
     baseURL: config.baseURL,
@@ -1602,6 +1987,291 @@ export async function createOpenAIResponsesStream(
     body: JSON.stringify(request),
     errorPrefix: 'OpenAI Responses request',
   })
+}
+
+async function connectOpenAIResponsesWebSocket(
+  config: OpenAICompatConfig,
+  request: OpenAIResponsesRequest,
+  session: OpenAIResponsesWebSocketSession,
+): Promise<OpenAIResponsesWebSocketLike> {
+  if (session.websocket && session.websocket.readyState === 1) {
+    return session.websocket
+  }
+  if (session.connectPromise) {
+    return session.connectPromise
+  }
+
+  const url = normalizeOpenAIResponsesWebSocketBaseUrl(config.baseURL)
+  const clientRequestId = getOpenAIResponsesWebSocketClientRequestId(config, request)
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${config.apiKey}`,
+    'User-Agent': getUserAgent(),
+    'OpenAI-Beta': OPENAI_RESPONSES_WEBSOCKETS_BETA_HEADER,
+    ...config.headers,
+    [OPENAI_CLIENT_REQUEST_ID_HEADER]: clientRequestId,
+  }
+
+  session.connectPromise = new Promise<OpenAIResponsesWebSocketLike>(async (resolve, reject) => {
+    const cleanup = () => {
+      session.connectPromise = undefined
+    }
+
+    try {
+      const { default: WS } = await import('ws')
+      const ws = new WS(url, {
+        headers,
+        agent: getWebSocketProxyAgent(url),
+        perMessageDeflate: true,
+        ...getWebSocketTLSOptions(),
+      }) as unknown as OpenAIResponsesWebSocketLike
+
+      ws.on('open', () => {
+        session.websocket = ws
+        cleanup()
+        resolve(ws)
+      })
+      ws.on('unexpected-response', (_req: unknown, response: { statusCode?: number; statusMessage?: string }) => {
+        cleanup()
+        reject(
+          new OpenAIResponsesWebSocketConnectError(
+            response.statusMessage || 'OpenAI Responses websocket upgrade rejected',
+            response.statusCode,
+          ),
+        )
+      })
+      ws.on('error', (error: Error) => {
+        cleanup()
+        reject(
+          new OpenAIResponsesWebSocketConnectError(
+            error.message || 'OpenAI Responses websocket connection failed',
+          ),
+        )
+      })
+      ws.on('close', () => {
+        session.websocket = undefined
+      })
+    } catch (error) {
+      cleanup()
+      reject(
+        error instanceof OpenAIResponsesWebSocketConnectError
+          ? error
+          : new OpenAIResponsesWebSocketConnectError(
+              error instanceof Error ? error.message : String(error),
+            ),
+      )
+    }
+  })
+
+  return session.connectPromise
+}
+
+function toOpenAIResponsesSSEStreamFromWebSocket(params: {
+  websocket: OpenAIResponsesWebSocketLike
+  payload: OpenAIResponsesWebSocketRequest
+  session: OpenAIResponsesWebSocketSession
+  request: OpenAIResponsesRequest
+  signal?: AbortSignal
+}): ReadableStream<Uint8Array> {
+  const encoder = new TextEncoder()
+
+  return new ReadableStream<Uint8Array>({
+    start(controller) {
+      params.session.inFlight = true
+      params.session.lastResponseItemsAdded = []
+      let sawCompleted = false
+      let streamClosed = false
+      let lastEventType: string | undefined
+      let lastEventSummary: string | undefined
+      let closeCode: number | undefined
+      let closeReason: string | undefined
+
+      const detach = (
+        event: string,
+        listener: (...args: any[]) => void,
+      ) => {
+        if (typeof params.websocket.off === 'function') {
+          params.websocket.off(event, listener)
+        } else if (typeof params.websocket.removeListener === 'function') {
+          params.websocket.removeListener(event, listener)
+        }
+      }
+
+      const closeWithError = (error: Error) => {
+        if (streamClosed) return
+        streamClosed = true
+        cleanup()
+        controller.error(error)
+      }
+
+      const onMessage = (raw: unknown) => {
+        const data =
+          typeof raw === 'string'
+            ? raw
+            : Buffer.isBuffer(raw)
+              ? raw.toString('utf-8')
+              : typeof raw === 'object' && raw !== null && 'data' in (raw as any)
+                ? String((raw as any).data)
+                : String(raw)
+        lastEventSummary = data.length > 500
+          ? `${data.slice(0, 500)}...`
+          : data
+
+        try {
+          const event = JSON.parse(data) as ResponsesStreamEvent
+          lastEventType = event.type
+          if (event.type === 'response.output_item.done') {
+            if (event.item.type === 'message') {
+              const text = (event.item.content ?? [])
+                .filter(part => part.type === 'output_text' && typeof part.text === 'string')
+                .map(part => ({
+                  type: 'output_text' as const,
+                  text: part.text ?? '',
+                }))
+              params.session.lastResponseItemsAdded.push({
+                role: 'assistant',
+                content: text,
+              })
+            } else if (event.item.type === 'function_call') {
+              params.session.lastResponseItemsAdded.push({
+                type: 'function_call',
+                call_id: event.item.call_id ?? event.item.id ?? 'call_openai',
+                name: event.item.name ?? '',
+                arguments: event.item.arguments ?? '',
+              })
+            }
+          } else if (event.type === 'response.completed') {
+            sawCompleted = true
+            params.session.lastRequest = params.request
+            params.session.lastResponseId = event.response?.id
+            params.session.inFlight = false
+            controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+            streamClosed = true
+            cleanup()
+            controller.close()
+            return
+          } else if (event.type === 'response.failed' || event.type === 'error') {
+            params.session.lastResponseId = undefined
+            params.session.lastRequest = undefined
+            params.session.lastResponseItemsAdded = []
+            params.session.inFlight = false
+          }
+        } catch {}
+
+        controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+      }
+
+      const onError = (error: Error) => {
+        params.session.inFlight = false
+        params.session.lastRequest = undefined
+        params.session.lastResponseId = undefined
+        params.session.lastResponseItemsAdded = []
+        closeWithError(
+          new Error(error.message || 'OpenAI Responses websocket stream error'),
+        )
+      }
+
+      const onClose = (code?: number, reason?: Buffer | string) => {
+        params.session.inFlight = false
+        closeCode = code
+        const normalizedReason =
+          typeof reason === 'string'
+            ? reason
+            : Buffer.isBuffer(reason)
+              ? reason.toString('utf-8')
+              : undefined
+        closeReason = normalizedReason?.trim() || undefined
+        if (sawCompleted || streamClosed) {
+          if (!streamClosed) {
+            streamClosed = true
+            cleanup()
+            controller.close()
+          }
+          return
+        }
+        closeWithError(
+          new Error(
+            `OpenAI Responses websocket closed before response.completed` +
+              `${closeCode !== undefined ? ` (code=${closeCode})` : ''}` +
+              `${closeReason ? ` (reason=${closeReason})` : ''}` +
+              `${lastEventType ? ` (last_event=${lastEventType})` : ''}` +
+              `${lastEventSummary ? ` (last_message=${lastEventSummary})` : ''}`,
+          ),
+        )
+      }
+
+      const onAbort = () => {
+        params.session.inFlight = false
+        closeWithError(new APIUserAbortError())
+      }
+
+      const cleanup = () => {
+        detach('message', onMessage)
+        detach('error', onError)
+        detach('close', onClose)
+        params.signal?.removeEventListener('abort', onAbort)
+      }
+
+      params.websocket.on('message', onMessage)
+      params.websocket.on('error', onError)
+      params.websocket.on('close', onClose)
+      params.signal?.addEventListener('abort', onAbort, { once: true })
+      params.websocket.send(JSON.stringify(params.payload))
+    },
+    cancel() {
+      params.session.inFlight = false
+    },
+  })
+}
+
+async function createOpenAIResponsesWebSocketStream(
+  config: OpenAICompatConfig,
+  request: OpenAIResponsesRequest,
+  signal?: AbortSignal,
+): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  const session = getOpenAIResponsesWebSocketSession(config, request)
+  if (session.inFlight) {
+    throw new OpenAIResponsesWebSocketConnectError('OpenAI Responses websocket session is busy')
+  }
+
+  const incrementalInput = getOpenAIResponsesIncrementalInput(session, request)
+  const payload: OpenAIResponsesWebSocketRequest = {
+    ...request,
+    type: 'response.create',
+    client_metadata: buildOpenAIResponsesWebSocketClientMetadata(request),
+    ...(incrementalInput ? { input: incrementalInput } : {}),
+    ...(incrementalInput && session.lastResponseId
+      ? { previous_response_id: session.lastResponseId }
+      : {}),
+  }
+
+  const payloadPath = await writeOpenAIResponsesPayloadDebugFile({
+    model: request.model,
+    promptCacheKey: request.prompt_cache_key,
+    request: payload,
+  })
+  if (payloadPath) {
+    for (let i = pendingPrefixDebugAttachments.length - 1; i >= 0; i--) {
+      const attachment = pendingPrefixDebugAttachments[i]
+      if (
+        attachment.requestShape === 'responses' &&
+        attachment.model === request.model &&
+        attachment.promptCacheKey === request.prompt_cache_key &&
+        !attachment.payloadPath
+      ) {
+        attachment.payloadPath = payloadPath
+        break
+      }
+    }
+  }
+
+  const websocket = await connectOpenAIResponsesWebSocket(config, request, session)
+  return toOpenAIResponsesSSEStreamFromWebSocket({
+    websocket,
+    payload,
+    session,
+    request,
+    signal,
+  }).getReader()
 }
 
 
@@ -1981,6 +2651,7 @@ function createContentIndexAllocator() {
 export async function* createAnthropicStreamFromOpenAIResponses(input: {
   reader: ReadableStreamDefaultReader<Uint8Array>
   model: string
+  request?: OpenAIResponsesRequest
 }): AsyncGenerator<BetaRawMessageStreamEvent, BetaMessage, void> {
   const decoder = new TextDecoder()
   let buffer = ''
@@ -1991,6 +2662,7 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
   let completionTokens = 0
   let stopReason: BetaMessage['stop_reason'] = 'end_turn'
   const allocator = createContentIndexAllocator()
+  const completedResponseItems: OpenAIResponsesInputItem[] = []
   type ToolCallState = {
     index: number
     id: string
@@ -2303,9 +2975,24 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
 
         if (event.type === 'response.output_item.done') {
           if (event.item.type === 'message') {
+            completedResponseItems.push({
+              role: 'assistant',
+              content: (event.item.content ?? [])
+                .filter(part => part.type === 'output_text' && typeof part.text === 'string')
+                .map(part => ({
+                  type: 'output_text',
+                  text: part.text ?? '',
+                })),
+            })
             currentTextIndex = null
           }
           if (event.item.type === 'function_call') {
+            completedResponseItems.push({
+              type: 'function_call',
+              call_id: event.item.call_id ?? event.item.id ?? 'call_openai',
+              name: event.item.name ?? '',
+              arguments: event.item.arguments ?? '',
+            })
             const state = resolveToolCallState(
               getToolCallKeys({
                 outputIndex: event.output_index,
@@ -2384,6 +3071,7 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
 export async function* createAnthropicStreamFromOpenAICodex(input: {
   reader: ReadableStreamDefaultReader<Uint8Array>
   model: string
+  request?: OpenAIResponsesRequest
 }): AsyncGenerator<BetaRawMessageStreamEvent, BetaMessage, void> {
   yield* createAnthropicStreamFromOpenAIResponses(input)
 }

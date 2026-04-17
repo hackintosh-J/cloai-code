@@ -599,6 +599,14 @@ export function getAPIMetadata() {
   }
 }
 
+function getOpenAIResponsesCacheScopeKey(options: {
+  querySource: QuerySource
+  agentId?: AgentId
+  queryTracking?: QueryChainTracking
+}): string {
+  return `${getSessionId()}:${options.queryTracking?.chainId ?? options.agentId ?? options.querySource}`
+}
+
 export async function verifyApiKey(
   apiKey: string,
   isNonInteractiveSession: boolean,
@@ -2060,6 +2068,20 @@ async function* queryModel(
               }
 
               if (copilotProtocol === 'responses') {
+                const openAIResponsesRequest = convertAnthropicRequestToOpenAIResponses({
+                  model: params.model,
+                  system: params.system,
+                  messages: messagesForAPI.map(msg => msg.message as MessageParam),
+                  tools: params.tools,
+                  tool_choice: params.tool_choice,
+                  temperature: params.temperature,
+                  max_tokens: params.max_tokens,
+                  cacheScopeKey: getOpenAIResponsesCacheScopeKey({
+                    querySource: options.querySource,
+                    agentId: options.agentId,
+                    queryTracking: options.queryTracking,
+                  }),
+                })
                 const reader = await createOpenAIResponsesStream(
                   {
                     apiKey: providerWithFreshTokens.apiKey || '',
@@ -2067,40 +2089,25 @@ async function* queryModel(
                     headers: copilotRequestHeaders,
                     fetch: globalThis.fetch,
                   },
-                  convertAnthropicRequestToOpenAIResponses({
-                    model: params.model,
-                    system: params.system,
-                    messages: messagesForAPI.map(msg => msg.message as MessageParam),
-                    tools: params.tools,
-                    tool_choice: params.tool_choice,
-                    temperature: params.temperature,
-                    max_tokens: params.max_tokens,
-                  }),
+                  openAIResponsesRequest,
                   signal,
                 )
                 queryCheckpoint('query_response_headers_received')
                 return createAnthropicStreamFromOpenAIWithEmptyRetry({
                   reader,
                   recreateReader: () =>
-                    createOpenAIResponsesStream(
-                      {
-                        apiKey: providerWithFreshTokens.apiKey || '',
-                        baseURL: providerWithFreshTokens.baseURL ?? customApiStorage.baseURL ?? '',
-                        headers: copilotRequestHeaders,
-                        fetch: globalThis.fetch,
-                      },
-                      convertAnthropicRequestToOpenAIResponses({
-                        model: params.model,
-                        system: params.system,
-                        messages: messagesForAPI.map(msg => msg.message as MessageParam),
-                        tools: params.tools,
-                        tool_choice: params.tool_choice,
-                        temperature: params.temperature,
-                        max_tokens: params.max_tokens,
-                      }),
-                      signal,
-                    ),
-                  generatorFactory: reader => createAnthropicStreamFromOpenAIResponses({ reader, model: params.model }),
+                    createOpenAIResponsesStream({
+                      apiKey: providerWithFreshTokens.apiKey || '',
+                      baseURL: providerWithFreshTokens.baseURL ?? customApiStorage.baseURL ?? '',
+                      headers: copilotRequestHeaders,
+                      fetch: globalThis.fetch,
+                    }, openAIResponsesRequest, signal),
+                  generatorFactory: reader =>
+                    createAnthropicStreamFromOpenAIResponses({
+                      reader,
+                      model: params.model,
+                      request: openAIResponsesRequest,
+                    }),
                   model: params.model,
                   signal,
                 }) as unknown as Stream<BetaRawMessageStreamEvent>
@@ -2206,6 +2213,11 @@ async function* queryModel(
               tool_choice: params.tool_choice,
               temperature: params.temperature,
               max_tokens: params.max_tokens,
+              cacheScopeKey: getOpenAIResponsesCacheScopeKey({
+                querySource: options.querySource,
+                agentId: options.agentId,
+                queryTracking: options.queryTracking,
+              }),
             })
             const reader = await createOpenAIResponsesStream(
               {
@@ -2235,7 +2247,12 @@ async function* queryModel(
                   openAIResponsesRequest,
                   signal,
                 ),
-              generatorFactory: reader => createAnthropicStreamFromOpenAIResponses({ reader, model: params.model }),
+              generatorFactory: reader =>
+                createAnthropicStreamFromOpenAIResponses({
+                  reader,
+                  model: params.model,
+                  request: openAIResponsesRequest,
+                }),
               model: params.model,
               signal,
             }) as unknown as Stream<BetaRawMessageStreamEvent>

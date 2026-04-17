@@ -2,6 +2,11 @@
 
 node_modules/
 
+packages/
+
+.stfolder/
+.stversions/
+
 dist/
 build/
 coverage/

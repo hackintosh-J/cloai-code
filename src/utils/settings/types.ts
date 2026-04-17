@@ -995,6 +995,18 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Show thinking summaries in the transcript view (ctrl+o). Default: false.',
         ),
+      openAIPrefixDebug: z
+        .boolean()
+        .optional()
+        .describe(
+          'Show OpenAI Responses prefix-cache debug attachments in the transcript. Default: false.',
+        ),
+      openAIResponsesIncrementalWebSocket: z
+        .boolean()
+        .optional()
+        .describe(
+          'Use Responses WebSocket incremental continuation for OpenAI official Responses API. Default: false.',
+        ),
       skipDangerousModePermissionPrompt: z
         .boolean()
         .optional()

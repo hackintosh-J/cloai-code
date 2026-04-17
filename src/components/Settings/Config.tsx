@@ -274,6 +274,8 @@ export function Config({
 
   const maxApiRetriesValue = settingsData?.maxApiRetries;
   const maxApiRetriesDisplayValue = maxApiRetriesValue === undefined || maxApiRetriesValue === 'default' ? 'default (15)' : typeof maxApiRetriesValue === 'number' ? `custom (${maxApiRetriesValue})` : maxApiRetriesValue;
+  const openAIPrefixDebugValue = settingsData?.openAIPrefixDebug ?? false;
+  const openAIResponsesIncrementalWebSocketValue = settingsData?.openAIResponsesIncrementalWebSocket === true;
 
   // TODO: Add MCP servers
   const settingsItems: Setting[] = [
@@ -399,6 +401,40 @@ export function Config({
     value: maxApiRetriesDisplayValue,
     type: 'managedEnum' as const,
     onChange() {}
+  }, {
+    id: 'openAIResponsesIncrementalWebSocket',
+    label: 'OpenAI responses incremental websocket',
+    value: openAIResponsesIncrementalWebSocketValue,
+    type: 'boolean' as const,
+    onChange(openAIResponsesIncrementalWebSocket: boolean) {
+      updateSettingsForSource('localSettings', {
+        openAIResponsesIncrementalWebSocket: openAIResponsesIncrementalWebSocket ? true : false
+      });
+      setSettingsData(prev_3 => ({
+        ...prev_3,
+        openAIResponsesIncrementalWebSocket: openAIResponsesIncrementalWebSocket ? true : false
+      }));
+      logEvent('tengu_openai_responses_incremental_websocket_setting_changed', {
+        enabled: openAIResponsesIncrementalWebSocket
+      });
+    }
+  }, {
+    id: 'openAIPrefixDebug',
+    label: 'OpenAI prefix debug',
+    value: openAIPrefixDebugValue,
+    type: 'boolean' as const,
+    onChange(openAIPrefixDebug: boolean) {
+      updateSettingsForSource('localSettings', {
+        openAIPrefixDebug: openAIPrefixDebug ? true : undefined
+      });
+      setSettingsData(prev_3 => ({
+        ...prev_3,
+        openAIPrefixDebug: openAIPrefixDebug ? true : undefined
+      }));
+      logEvent('tengu_openai_prefix_debug_setting_changed', {
+        enabled: openAIPrefixDebug
+      });
+    }
   }, {
     id: 'spinnerTipsEnabled',
     label: 'Show tips',
@@ -1294,6 +1330,12 @@ export function Config({
       const label = settingsData?.maxApiRetries === undefined || settingsData?.maxApiRetries === 'default' ? 'Reset max API retries to default' : `Set max API retries to ${chalk.bold(String(settingsData.maxApiRetries))}`;
       formattedChanges.push(label);
     }
+    if (settingsData?.openAIResponsesIncrementalWebSocket !== initialSettingsData.current?.openAIResponsesIncrementalWebSocket) {
+      formattedChanges.push(`${settingsData?.openAIResponsesIncrementalWebSocket === true ? 'Enabled' : 'Disabled'} OpenAI Responses incremental websocket`);
+    }
+    if (settingsData?.openAIPrefixDebug !== initialSettingsData.current?.openAIPrefixDebug) {
+      formattedChanges.push(`${settingsData?.openAIPrefixDebug ? 'Enabled' : 'Disabled'} OpenAI prefix debug`);
+    }
     if (formattedChanges.length > 0) {
       onClose(formattedChanges.join('\n'));
     } else {
@@ -1301,7 +1343,7 @@ export function Config({
         display: 'system'
       });
     }
-  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, settingsData?.maxConsecutiveIdenticalToolCalls, settingsData?.maxApiRetries, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
+  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, settingsData?.maxConsecutiveIdenticalToolCalls, settingsData?.maxApiRetries, settingsData?.openAIResponsesIncrementalWebSocket, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
 
   // Restore all state stores to their mount-time snapshots. Changes are
   // applied to disk/AppState immediately on toggle, so "cancel" means
@@ -1393,7 +1435,9 @@ export function Config({
       outputStyle: il?.outputStyle,
       samplingTemperature: il?.samplingTemperature,
       maxConsecutiveIdenticalToolCalls: il?.maxConsecutiveIdenticalToolCalls,
-      maxApiRetries: il?.maxApiRetries
+      maxApiRetries: il?.maxApiRetries,
+      openAIResponsesIncrementalWebSocket: il?.openAIResponsesIncrementalWebSocket,
+      openAIPrefixDebug: il?.openAIPrefixDebug
     });
     const iu = initialUserSettings;
     updateSettingsForSource('userSettings', {

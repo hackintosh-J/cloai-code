@@ -1,6 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { APIConnectionError, APIError } from '@anthropic-ai/sdk'
 import {
+  convertAnthropicRequestToOpenAICodex,
+  convertAnthropicRequestToOpenAIResponses,
   createAnthropicStreamFromOpenAI,
   createAnthropicStreamFromOpenAIResponses,
   createAnthropicStreamFromOpenAIWithEmptyRetry,
@@ -9,6 +11,15 @@ import {
   createOpenAICodexStream,
   createCopilotChatStream,
 } from './openaiCompat.js'
+
+function readAllFromGenerator<T>(generator: AsyncGenerator<T, any, void>) {
+  return (async () => {
+    while (true) {
+      const next = await generator.next()
+      if (next.done) return next.value
+    }
+  })()
+}
 
 describe('OpenAI compat APIError conversion', () => {
   test('createOpenAICompatStream converts failed response to APIError', async () => {
@@ -316,6 +327,449 @@ describe('OpenAI compat stream parse errors', () => {
     expect(collectToolJson(firstToolIndex!)).toBe('{"a":1}')
     expect(collectToolJson(secondToolIndex!)).toBe('{"b":2}')
     expect(finalMessage?.stop_reason).toBe('tool_use')
+  })
+})
+
+describe('convertAnthropicRequestToOpenAIResponses', () => {
+  test('preserves tool results when a later user turn mixes tool_result and text', () => {
+    const request = convertAnthropicRequestToOpenAIResponses({
+      model: 'gpt-5.4',
+      system: [
+        { text: 'Static instructions' },
+        { text: '<system-reminder>Dynamic instructions</system-reminder>' },
+      ],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First prompt' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'First answer' }],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_123', content: 'ok' },
+            { type: 'text', text: 'Second prompt' },
+          ],
+        } as any,
+      ],
+    })
+
+    expect(request.input.at(-1)).toEqual({
+      role: 'user',
+      content: [
+        {
+          type: 'input_text',
+          text: 'Second prompt',
+        },
+      ],
+    })
+
+    expect(request.input).toContainEqual({
+      type: 'function_call_output',
+      call_id: 'call_123',
+      output: 'ok',
+    })
+  })
+
+  test('scopes prompt_cache_key by cacheScopeKey while remaining stable within that scope', () => {
+    const baseInput = {
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First prompt' }],
+        } as any,
+      ],
+    }
+
+    const requestA1 = convertAnthropicRequestToOpenAIResponses({
+      ...baseInput,
+      cacheScopeKey: 'session-a:repl_main_thread',
+    })
+    const requestA2 = convertAnthropicRequestToOpenAIResponses({
+      ...baseInput,
+      cacheScopeKey: 'session-a:repl_main_thread',
+    })
+    const requestB = convertAnthropicRequestToOpenAIResponses({
+      ...baseInput,
+      cacheScopeKey: 'session-b:repl_main_thread',
+    })
+
+    expect(requestA1.prompt_cache_key).toBe(requestA2.prompt_cache_key)
+    expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
+  })
+
+  test('further scopes prompt_cache_key by first user turn within the same cache scope', () => {
+    const shared = {
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      cacheScopeKey: 'session-a:repl_main_thread',
+    }
+
+    const requestA1 = convertAnthropicRequestToOpenAIResponses({
+      ...shared,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses in responses api' }],
+        } as any,
+      ],
+    })
+    const requestA2 = convertAnthropicRequestToOpenAIResponses({
+      ...shared,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses in responses api' }],
+        } as any,
+      ],
+    })
+    const requestB = convertAnthropicRequestToOpenAIResponses({
+      ...shared,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Help me refactor the settings page' }],
+        } as any,
+      ],
+    })
+
+    expect(requestA1.prompt_cache_key).toBe(requestA2.prompt_cache_key)
+    expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
+  })
+
+  test('normalizes responses tool definitions before hashing and sending', () => {
+    const request = convertAnthropicRequestToOpenAIResponses({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First prompt' }],
+        } as any,
+      ],
+      tools: [
+        {
+          name: 'zetaTool',
+          description: 'zeta',
+          input_schema: {
+            type: 'object',
+            required: ['b', 'a'],
+            properties: {
+              z: { type: 'string' },
+              a: { type: 'number' },
+            },
+          },
+        } as any,
+        {
+          name: 'alphaTool',
+          description: 'alpha',
+          input_schema: {
+            properties: {
+              beta: { type: 'boolean' },
+              alpha: { type: 'string' },
+            },
+            type: 'object',
+          },
+        } as any,
+      ],
+    })
+
+    expect(request.tools?.map(tool => tool.name)).toEqual([
+      'alphaTool',
+      'zetaTool',
+    ])
+    expect(
+      Object.keys(
+        (request.tools?.[0]?.parameters ?? {}) as Record<string, unknown>,
+      ),
+    ).toEqual(['properties', 'type'])
+    expect(
+      Object.keys(
+        ((request.tools?.[0]?.parameters ?? {}) as Record<string, unknown>)
+          .properties as Record<string, unknown>,
+      ),
+    ).toEqual(['alpha', 'beta'])
+  })
+
+  test('preserves append-only responses order for assistant text plus later tool results', () => {
+    const request = convertAnthropicRequestToOpenAIResponses({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            {
+              type: 'tool_use',
+              id: 'call_1',
+              name: 'TaskCreate',
+              input: { title: 'task 1' },
+            },
+            {
+              type: 'tool_use',
+              id: 'call_2',
+              name: 'TaskCreate',
+              input: { title: 'task 2' },
+            },
+            {
+              type: 'tool_use',
+              id: 'call_3',
+              name: 'TaskCreate',
+              input: { title: 'task 3' },
+            },
+            {
+              type: 'text',
+              text: '我先查代码路径和缓存实现，再跑复现实验。',
+            },
+            {
+              type: 'tool_use',
+              id: 'call_4',
+              name: 'Grep',
+              input: { pattern: 'prompt_cache_key' },
+            },
+            {
+              type: 'tool_use',
+              id: 'call_5',
+              name: 'Read',
+              input: { file_path: 'src/services/api/openaiCompat.ts' },
+            },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            {
+              type: 'tool_result',
+              tool_use_id: 'call_1',
+              content: 'task 1 done',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'call_2',
+              content: 'task 2 done',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'call_3',
+              content: 'task 3 done',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'call_4',
+              content: 'grep output',
+            },
+            {
+              type: 'tool_result',
+              tool_use_id: 'call_5',
+              content: 'read output',
+            },
+          ],
+        } as any,
+      ],
+      tools: [
+        {
+          name: 'TaskCreate',
+          input_schema: { type: 'object' },
+        } as any,
+        {
+          name: 'Grep',
+          input_schema: { type: 'object' },
+        } as any,
+        {
+          name: 'Read',
+          input_schema: { type: 'object' },
+        } as any,
+      ],
+    })
+
+    expect(request.input.map(item => ('role' in item ? item.role : item.type))).toEqual([
+      'user',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+      'assistant',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+    ])
+
+    expect(request.input[7]).toEqual({
+      role: 'assistant',
+      content: [{ type: 'output_text', text: '我先查代码路径和缓存实现，再跑复现实验。' }],
+    })
+  })
+
+  test('keeps prior tool call outputs in prefix when a later turn adds one new tool call', () => {
+    const requestA = convertAnthropicRequestToOpenAIResponses({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'TaskCreate', input: { title: 'a' } },
+            { type: 'tool_use', id: 'call_2', name: 'TaskCreate', input: { title: 'b' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_1', content: 'task a done' },
+            { type: 'tool_result', tool_use_id: 'call_2', content: 'task b done' },
+          ],
+        } as any,
+      ],
+      tools: [{ name: 'TaskCreate', input_schema: { type: 'object' } } as any],
+    })
+
+    const requestB = convertAnthropicRequestToOpenAIResponses({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'TaskCreate', input: { title: 'a' } },
+            { type: 'tool_use', id: 'call_2', name: 'TaskCreate', input: { title: 'b' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_1', content: 'task a done' },
+            { type: 'tool_result', tool_use_id: 'call_2', content: 'task b done' },
+          ],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_3', name: 'Read', input: { file_path: 'src/services/api/openaiCompat.ts' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_3', content: 'read output' },
+          ],
+        } as any,
+      ],
+      tools: [
+        { name: 'TaskCreate', input_schema: { type: 'object' } } as any,
+        { name: 'Read', input_schema: { type: 'object' } } as any,
+      ],
+    })
+
+    expect(requestA.input).toEqual(requestB.input.slice(0, requestA.input.length))
+    expect(requestB.input.map(item => ('role' in item ? item.role : item.type))).toEqual([
+      'user',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+    ])
+  })
+
+  test('keeps prior tool call outputs in prefix for codex requests too', () => {
+    const requestA = convertAnthropicRequestToOpenAICodex({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'TaskCreate', input: { title: 'a' } },
+            { type: 'tool_use', id: 'call_2', name: 'TaskCreate', input: { title: 'b' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_1', content: 'task a done' },
+            { type: 'tool_result', tool_use_id: 'call_2', content: 'task b done' },
+          ],
+        } as any,
+      ],
+      tools: [{ name: 'TaskCreate', input_schema: { type: 'object' } } as any],
+    })
+
+    const requestB = convertAnthropicRequestToOpenAICodex({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'TaskCreate', input: { title: 'a' } },
+            { type: 'tool_use', id: 'call_2', name: 'TaskCreate', input: { title: 'b' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_1', content: 'task a done' },
+            { type: 'tool_result', tool_use_id: 'call_2', content: 'task b done' },
+          ],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_3', name: 'Read', input: { file_path: 'src/services/api/openaiCompat.ts' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_3', content: 'read output' },
+          ],
+        } as any,
+      ],
+      tools: [
+        { name: 'TaskCreate', input_schema: { type: 'object' } } as any,
+        { name: 'Read', input_schema: { type: 'object' } } as any,
+      ],
+    })
+
+    expect(requestA.input).toEqual(requestB.input.slice(0, requestA.input.length))
+    expect(requestB.input.map(item => ('role' in item ? item.role : item.type))).toEqual([
+      'user',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+    ])
   })
 })
 
