@@ -5,7 +5,7 @@
   <img src="preview.png" alt="cloaiCode Model Selector Preview" />
   <h1>cloaiCode</h1>
   <p><strong>`cloaiCode` 是原生兼容多个模型供应商的 Claude Code 修改版。🚀</strong></p>
-  <p>兼容 MiniMax-M2.7、GPT-5.4、Codex OAuth、Github Copilot、Google Gemini 等</p>
+  <p>兼容 MiniMax-M2.7、GPT-5.4、Codex OAuth、GitHub Copilot、Google Gemini 等</p>
   <p>
     <a href="README.md"><img src="https://img.shields.io/badge/runtime-Bun%20%2B%20Node-3b82f6" alt="Runtime" /></a>
     <a href="README.md"><img src="https://img.shields.io/badge/config-~%2F.cloai-8b5cf6" alt="Config" /></a>
@@ -19,7 +19,9 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 4 月 16 日**
+更新于 **2026 年 4 月 18 日**
+
+- ⭐ **新增 GitHub Copilot / Codex OAuth 的 GPT 系列模型缓存支持**：补齐对应 OpenAI-compatible 路径上的 Responses 缓存命中能力。
 
 - ⭐ **`/login` 登录体系重写**：新增账号管理、Provider 分组、官方/自定义子菜单、分步配置与 OAuth 回填，整个登录链路从一次性录入升级为可持续管理的闭环。
 - ⭐ **正式支持 GitHub Copilot OAuth**：已实测 `gpt-5-mini`、`claude-haiku-4.5`、`gemini-3-flash-preview`，并补齐 OpenAI OAuth、Google AI Studio、Google Antigravity (OAuth) 等官方线路。
@@ -804,6 +806,12 @@ cloai
 -----
 
 ## 详细更新日志
+
+### 2026 年 4 月 18 日更新
+
+- 同步“近期重要更新”日期为 **2026 年 4 月 18 日**。
+- 新增 GitHub Copilot / Codex OAuth 的 GPT 系列模型缓存支持，补齐这两条 OpenAI-compatible 路径上的缓存命中能力。
+- 修复过去缓存只能命中前缀、无法持续扩展的问题；现在多轮工具调用下缓存可继续向后增长，而不再长期卡死在前面一小段前缀。
 
 ### 2026 年 4 月 16 日更新
 
