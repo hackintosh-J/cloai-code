@@ -457,6 +457,7 @@ const openAIResponsesWebSocketSessions = new Map<string, OpenAIResponsesWebSocke
 let openAIPrefixDebugSequence = 0
 const OPENAI_RESPONSES_WEBSOCKETS_BETA_HEADER = 'responses_websockets=2026-02-06'
 const OPENAI_CLIENT_REQUEST_ID_HEADER = 'x-client-request-id'
+const OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH = 64
 
 type OpenAIResponsesWebSocketLike = {
   readyState: number
@@ -554,7 +555,11 @@ function getOpenAIResponsesWebSocketClientRequestId(
 }
 
 function getStableOpenAIPromptCacheKey(cacheScopeKey?: string): string {
-  return cacheScopeKey?.trim() || getSessionId()
+  const raw = cacheScopeKey?.trim() || getSessionId()
+  if (raw.length <= OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH) {
+    return raw
+  }
+  return `ccpk_${createHash('sha256').update(raw).digest('hex').slice(0, OPENAI_PROMPT_CACHE_KEY_MAX_LENGTH - 5)}`
 }
 
 function buildOpenAIResponsesWebSocketClientMetadata(

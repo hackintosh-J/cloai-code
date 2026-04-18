@@ -490,6 +490,23 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
     expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
   })
 
+  test('hashes long responses prompt_cache_key values down to 64 chars', () => {
+    const request = convertAnthropicRequestToOpenAIResponses({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      cacheScopeKey: 'x'.repeat(73),
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First prompt' }],
+        } as any,
+      ],
+    })
+
+    expect(request.prompt_cache_key).toHaveLength(64)
+    expect(request.prompt_cache_key).toMatch(/^ccpk_[a-f0-9]{59}$/)
+  })
+
   test('keeps responses prompt_cache_key stable for different first user turns within the same cache scope', () => {
     const shared = {
       model: 'gpt-5.4',
