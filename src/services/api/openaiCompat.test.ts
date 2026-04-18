@@ -692,6 +692,158 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
     ])
   })
 
+  test('scopes codex prompt_cache_key by cacheScopeKey while remaining stable within that scope', () => {
+    const baseInput = {
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'First prompt' }],
+        } as any,
+      ],
+    }
+
+    const requestA1 = convertAnthropicRequestToOpenAICodex({
+      ...baseInput,
+      cacheScopeKey: 'session-a:repl_main_thread',
+    } as any)
+    const requestA2 = convertAnthropicRequestToOpenAICodex({
+      ...baseInput,
+      cacheScopeKey: 'session-a:repl_main_thread',
+    } as any)
+    const requestB = convertAnthropicRequestToOpenAICodex({
+      ...baseInput,
+      cacheScopeKey: 'session-b:repl_main_thread',
+    } as any)
+
+    expect(typeof requestA1.prompt_cache_key).toBe('string')
+    expect(requestA1.prompt_cache_key).toBe(requestA2.prompt_cache_key)
+    expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
+  })
+
+  test('further scopes codex prompt_cache_key by first user turn within the same cache scope', () => {
+    const shared = {
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      cacheScopeKey: 'session-a:repl_main_thread',
+    }
+
+    const requestA1 = convertAnthropicRequestToOpenAICodex({
+      ...shared,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses in responses api' }],
+        } as any,
+      ],
+    } as any)
+    const requestA2 = convertAnthropicRequestToOpenAICodex({
+      ...shared,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses in responses api' }],
+        } as any,
+      ],
+    } as any)
+    const requestB = convertAnthropicRequestToOpenAICodex({
+      ...shared,
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Help me refactor the settings page' }],
+        } as any,
+      ],
+    } as any)
+
+    expect(typeof requestA1.prompt_cache_key).toBe('string')
+    expect(requestA1.prompt_cache_key).toBe(requestA2.prompt_cache_key)
+    expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
+  })
+
+  test('keeps codex append-only prefix behavior after adding prompt_cache_key', () => {
+    const requestA = convertAnthropicRequestToOpenAICodex({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      cacheScopeKey: 'session-a:repl_main_thread',
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'TaskCreate', input: { title: 'a' } },
+            { type: 'tool_use', id: 'call_2', name: 'TaskCreate', input: { title: 'b' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_1', content: 'task a done' },
+            { type: 'tool_result', tool_use_id: 'call_2', content: 'task b done' },
+          ],
+        } as any,
+      ],
+      tools: [{ name: 'TaskCreate', input_schema: { type: 'object' } } as any],
+    } as any)
+
+    const requestB = convertAnthropicRequestToOpenAICodex({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      cacheScopeKey: 'session-a:repl_main_thread',
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_1', name: 'TaskCreate', input: { title: 'a' } },
+            { type: 'tool_use', id: 'call_2', name: 'TaskCreate', input: { title: 'b' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [
+            { type: 'tool_result', tool_use_id: 'call_1', content: 'task a done' },
+            { type: 'tool_result', tool_use_id: 'call_2', content: 'task b done' },
+          ],
+        } as any,
+        {
+          role: 'assistant',
+          content: [
+            { type: 'tool_use', id: 'call_3', name: 'Read', input: { file_path: 'src/services/api/openaiCompat.ts' } },
+          ],
+        } as any,
+        {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: 'call_3', content: 'read output' }],
+        } as any,
+      ],
+      tools: [
+        { name: 'TaskCreate', input_schema: { type: 'object' } } as any,
+        { name: 'Read', input_schema: { type: 'object' } } as any,
+      ],
+    } as any)
+
+    expect(typeof requestA.prompt_cache_key).toBe('string')
+    expect(typeof requestB.prompt_cache_key).toBe('string')
+    expect(requestA.input).toEqual(requestB.input.slice(0, requestA.input.length))
+    expect(requestB.input.map(item => ('role' in item ? item.role : item.type))).toEqual([
+      'user',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+      'function_call',
+      'function_call_output',
+    ])
+  })
+
   test('keeps prior tool call outputs in prefix for codex requests too', () => {
     const requestA = convertAnthropicRequestToOpenAICodex({
       model: 'gpt-5.4',

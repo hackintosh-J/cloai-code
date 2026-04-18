@@ -365,6 +365,7 @@ export type OpenAICodexRequest = {
   input: OpenAICodexInputItem[]
   store: false
   stream: true
+  prompt_cache_key?: string
   text: { verbosity: 'low' | 'medium' | 'high' }
   include: ['reasoning.encrypted_content']
   tool_choice: 'auto'
@@ -1392,6 +1393,7 @@ export function convertAnthropicRequestToOpenAICodex(input: {
   messages: BetaMessageParam[]
   tools?: BetaToolUnion[]
   temperature?: number
+  cacheScopeKey?: string
 }): OpenAICodexRequest {
   const configuredModel = process.env.ANTHROPIC_MODEL?.trim()
   const targetModel = configuredModel || input.model
@@ -1490,12 +1492,44 @@ export function convertAnthropicRequestToOpenAICodex(input: {
 
   appendDynamicInstructionsToCodexInput(codexInput, dynamicInstructions)
 
+  const conversationAnchor = getResponsesConversationAnchor(
+    codexInput.filter(item => 'role' in item) as OpenAIResponsesInputItem[],
+  )
+  const promptCacheKey = hashStableJson({
+    cacheScopeKey: input.cacheScopeKey ?? 'global',
+    conversationAnchor,
+    model: targetModel,
+    instructions: instructions ?? '',
+    tools: toolDefinitions ?? [],
+  })
+  logOpenAIPrefixFingerprint({
+    requestShape: 'codex',
+    model: targetModel,
+    instructions,
+    dynamicInstructions,
+    tools: toolDefinitions,
+    inputItems: codexInput,
+    promptCacheKey,
+    dynamicSystemContextIndex: codexInput.findIndex(
+      item =>
+        'role' in item &&
+        item.role === 'user' &&
+        item.content.some(
+          part =>
+            part.type === 'input_text' &&
+            part.text.startsWith('<dynamic_system_context>\n') &&
+            part.text.endsWith('\n</dynamic_system_context>'),
+        ),
+    ),
+  })
+
   return {
     model: targetModel,
     ...(instructions ? { instructions } : {}),
     input: codexInput,
     store: false,
     stream: true,
+    prompt_cache_key: promptCacheKey,
     text: { verbosity: reasoning?.textVerbosity === 'low' || reasoning?.textVerbosity === 'high' ? reasoning.textVerbosity : 'medium' },
     include: ['reasoning.encrypted_content'],
     tool_choice: 'auto',

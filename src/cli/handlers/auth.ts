@@ -35,10 +35,12 @@ import {
 } from '../../utils/auth.js'
 import { saveGlobalConfig } from '../../utils/config.js'
 import {
+  type CustomApiStorageData,
   getActiveProviderConfig,
   getProviderKeyFromConfig,
   inferProviderVariant,
   readCustomApiStorage,
+  type ProviderConfig,
   writeCustomApiStorage,
 } from '../../utils/customApiStorage.js'
 import { normalizeApiKeyForConfig } from '../../utils/authPortable.js'
@@ -53,6 +55,149 @@ import {
   buildAccountProperties,
   buildAPIProviderProperties,
 } from '../../utils/status.js'
+
+function isOpenAIOAuthProvider(
+  provider: ProviderConfig | undefined,
+): provider is ProviderConfig & { kind: 'openai-like'; authMode: 'oauth' } {
+  return !!provider &&
+    provider.kind === 'openai-like' &&
+    provider.authMode === 'oauth' &&
+    provider.id !== 'github-copilot' &&
+    provider.variant !== 'github-copilot-oauth'
+}
+
+function canReuseOpenAIActiveModel(
+  storage: CustomApiStorageData,
+  provider: ProviderConfig,
+  models: string[] | undefined,
+): boolean {
+  const activeModel = storage.activeModel
+  if (!activeModel || !models?.includes(activeModel)) {
+    return false
+  }
+
+  const activeAuthMode = storage.activeAuthMode ?? storage.authMode
+  if (
+    storage.activeProvider === provider.id &&
+    activeAuthMode === provider.authMode &&
+    storage.providerKind === provider.kind &&
+    (storage.variant === undefined || provider.variant === undefined || storage.variant === provider.variant)
+  ) {
+    return true
+  }
+
+  if (storage.activeProviderKey) {
+    return storage.activeProviderKey === getProviderKeyFromConfig(provider)
+  }
+
+  return false
+}
+
+function buildOpenAIOAuthProvider(input: {
+  targetProvider?: ProviderConfig
+  accessToken: string
+  refreshToken?: string
+  expiresAt?: number
+  accountId?: string
+  fetchedModels?: string[]
+}): ProviderConfig {
+  const oauthData = {
+    accessToken: input.accessToken,
+    refreshToken:
+      input.refreshToken ??
+      (input.targetProvider?.oauth as { refreshToken?: string } | undefined)
+        ?.refreshToken,
+    expiresAt:
+      input.expiresAt ??
+      (input.targetProvider?.oauth as { expiresAt?: number } | undefined)?.expiresAt,
+    accountId:
+      input.accountId ??
+      (input.targetProvider?.oauth as { accountId?: string } | undefined)?.accountId,
+  }
+
+  return {
+    id: input.targetProvider?.id ?? 'openai',
+    kind: 'openai-like',
+    variant: 'openai-oauth',
+    authMode: 'oauth',
+    baseURL: input.targetProvider?.baseURL,
+    apiKey: input.accessToken,
+    models: input.fetchedModels ?? input.targetProvider?.models ?? [],
+    oauth: oauthData,
+  }
+}
+
+export function buildOpenAIOAuthInstallState(input: {
+  previousStorage: CustomApiStorageData
+  accessToken: string
+  refreshToken?: string
+  expiresAt?: number
+  accountId?: string
+  fetchedModels?: string[]
+}): {
+  normalizedStorage: CustomApiStorageData
+  nextProvider: ProviderConfig
+} {
+  const providers = input.previousStorage.providers ?? []
+  const activeProvider = getActiveProviderConfig(input.previousStorage)
+  const activeOpenAIProvider = isOpenAIOAuthProvider(activeProvider)
+    ? activeProvider
+    : undefined
+  const activeProviderId =
+    input.previousStorage.providerId ?? input.previousStorage.activeProvider
+  const fallbackOpenAIProvider = providers.find(
+    provider =>
+      isOpenAIOAuthProvider(provider) &&
+      provider.id === activeProviderId,
+  )
+  const targetProvider =
+    activeOpenAIProvider ??
+    fallbackOpenAIProvider ??
+    providers.find(provider => isOpenAIOAuthProvider(provider))
+
+  const nextProvider = buildOpenAIOAuthProvider({
+    targetProvider,
+    accessToken: input.accessToken,
+    refreshToken: input.refreshToken,
+    expiresAt: input.expiresAt,
+    accountId: input.accountId,
+    fetchedModels: input.fetchedModels,
+  })
+
+  const updatedProviders = targetProvider
+    ? providers.map(provider =>
+        provider === targetProvider ? nextProvider : provider,
+      )
+    : [...providers, nextProvider]
+
+  const activeModel = canReuseOpenAIActiveModel(
+    input.previousStorage,
+    targetProvider ?? nextProvider,
+    nextProvider.models,
+  )
+    ? input.previousStorage.activeModel
+    : nextProvider.models[0]
+
+  return {
+    nextProvider,
+    normalizedStorage: {
+      ...input.previousStorage,
+      activeProviderKey: getProviderKeyFromConfig(nextProvider),
+      providers: updatedProviders,
+      activeProvider: nextProvider.id,
+      activeModel,
+      provider: 'openai',
+      providerKind: nextProvider.kind,
+      variant: nextProvider.variant,
+      providerId: nextProvider.id,
+      authMode: nextProvider.authMode,
+      baseURL: nextProvider.baseURL,
+      apiKey: input.accessToken,
+      model: activeModel,
+      savedModels: nextProvider.models,
+    },
+  }
+}
 
 /**
  * Shared post-token-acquisition logic. Saves tokens, fetches profile/roles,
@@ -77,26 +222,7 @@ export async function installOAuthTokens(
   // Handle OpenAI OAuth separately — skip Anthropic-specific endpoints
   if (oauthProvider === 'openai') {
     const previousStorage = existingCustomApiStorage ?? {}
-    const providers = previousStorage.providers ?? []
     const normalizedToken = normalizeApiKeyForConfig(tokens.accessToken)
-    const activeProvider = getActiveProviderConfig(previousStorage)
-    const activeOpenAIProvider =
-      activeProvider?.variant === 'openai-oauth' ||
-      (activeProvider?.kind === 'openai-like' && activeProvider.authMode === 'oauth')
-        ? activeProvider
-        : undefined
-    const fallbackOpenAIProvider = providers.find(
-      p =>
-        (p.variant === 'openai-oauth' ||
-          (p.kind === 'openai-like' && p.authMode === 'oauth')) &&
-        p.id === previousStorage.providerId,
-    )
-    const targetProvider =
-      activeOpenAIProvider ??
-      fallbackOpenAIProvider ??
-      providers.find(
-        p => p.variant === 'openai-oauth' || (p.kind === 'openai-like' && p.authMode === 'oauth'),
-      )
 
     // Extract account ID from JWT and fetch available models
     const accountId = extractAccountIdFromToken(tokens.accessToken ?? '')
@@ -112,90 +238,21 @@ export async function installOAuthTokens(
       }
     }
 
-    const oauthData = {
-      accessToken: tokens.accessToken,
-      refreshToken:
-        typeof tokens.refreshToken === 'string'
-          ? tokens.refreshToken
-          : undefined,
-      expiresAt:
-        typeof tokens.expiresAt === 'number'
-          ? tokens.expiresAt
-          : undefined,
-      accountId,
-    }
-    const updatedProviders = targetProvider
-      ? providers.map(p =>
-          p === targetProvider
-            ? {
-                ...p,
-                variant:
-                  p.variant ??
-                  inferProviderVariant({
-                    kind: p.kind,
-                    authMode: p.authMode,
-                    baseURL: p.baseURL,
-                    id: p.id,
-                    provider: 'openai',
-                  }),
-                apiKey: tokens.accessToken,
-                models: fetchedModels ?? p.models,
-                oauth: {
-                  ...oauthData,
-                  refreshToken: oauthData.refreshToken
-                    ?? (p.oauth as { refreshToken?: string } | undefined)?.refreshToken,
-                  expiresAt: oauthData.expiresAt
-                    ?? (p.oauth as { expiresAt?: number } | undefined)?.expiresAt,
-                  accountId: oauthData.accountId
-                    ?? (p.oauth as { accountId?: string } | undefined)?.accountId,
-                },
-              }
-            : p,
-        )
-      : [
-          ...providers,
-          {
-            id: 'openai',
-            kind: 'openai-like' as const,
-            variant: 'openai-oauth' as const,
-            authMode: 'oauth' as const,
-            apiKey: tokens.accessToken,
-            models: fetchedModels ?? [],
-            oauth: oauthData,
-          },
-        ]
-
-    const resolvedModels = fetchedModels ?? targetProvider?.models
-    const effectiveProvider = targetProvider ?? {
-      id: 'openai',
-      kind: 'openai-like' as const,
-      variant: 'openai-oauth' as const,
-      authMode: 'oauth' as const,
-    }
-    const activeModel =
-      previousStorage.activeProvider === effectiveProvider.id
-        ? previousStorage.activeModel
-        : resolvedModels?.[0]
-    const normalizedOpenAIStorage = {
-      ...previousStorage,
-      activeProviderKey: getProviderKeyFromConfig(effectiveProvider),
-      providers: updatedProviders,
-      activeProvider: effectiveProvider.id,
-      activeModel,
-      provider: 'openai' as const,
-      providerKind: effectiveProvider.kind,
-      variant: effectiveProvider.variant,
-      providerId: effectiveProvider.id,
-      authMode: effectiveProvider.authMode,
-      baseURL: targetProvider?.baseURL ?? previousStorage.baseURL,
-      apiKey: tokens.accessToken,
-      model: activeModel,
-      savedModels:
-        resolvedModels ??
-        (previousStorage.activeProvider === effectiveProvider.id
-          ? previousStorage.savedModels
-          : undefined),
-    }
+    const { normalizedStorage: normalizedOpenAIStorage } =
+      buildOpenAIOAuthInstallState({
+        previousStorage,
+        accessToken: tokens.accessToken,
+        refreshToken:
+          typeof tokens.refreshToken === 'string'
+            ? tokens.refreshToken
+            : undefined,
+        expiresAt:
+          typeof tokens.expiresAt === 'number'
+            ? tokens.expiresAt
+            : undefined,
+        accountId,
+        fetchedModels,
+      })
 
     writeCustomApiStorage(normalizedOpenAIStorage)
     saveGlobalConfig(current => ({
