@@ -274,6 +274,7 @@ export function Config({
 
   const maxApiRetriesValue = settingsData?.maxApiRetries;
   const maxApiRetriesDisplayValue = maxApiRetriesValue === undefined || maxApiRetriesValue === 'default' ? 'default (15)' : typeof maxApiRetriesValue === 'number' ? `custom (${maxApiRetriesValue})` : maxApiRetriesValue;
+  const parallelToolCallsValue = settingsData?.parallelToolCalls === true;
   const openAIPrefixDebugValue = settingsData?.openAIPrefixDebug ?? false;
   const openAIResponsesIncrementalWebSocketValue = settingsData?.openAIResponsesIncrementalWebSocket === true;
 
@@ -402,6 +403,23 @@ export function Config({
     type: 'managedEnum' as const,
     onChange() {}
   }, {
+    id: 'parallelToolCalls',
+    label: 'Parallel tool calls',
+    value: parallelToolCallsValue,
+    type: 'boolean' as const,
+    onChange(parallelToolCalls: boolean) {
+      updateSettingsForSource('localSettings', {
+        parallelToolCalls: parallelToolCalls ? true : undefined
+      });
+      setSettingsData(prev_3 => ({
+        ...prev_3,
+        parallelToolCalls: parallelToolCalls ? true : undefined
+      }));
+      logEvent('tengu_parallel_tool_calls_setting_changed', {
+        enabled: parallelToolCalls
+      });
+    }
+  }, {
     id: 'openAIResponsesIncrementalWebSocket',
     label: 'OpenAI responses incremental websocket',
     value: openAIResponsesIncrementalWebSocketValue,
@@ -420,7 +438,7 @@ export function Config({
     }
   }, {
     id: 'openAIPrefixDebug',
-    label: 'OpenAI prefix debug',
+    label: 'Prefix Debug',
     value: openAIPrefixDebugValue,
     type: 'boolean' as const,
     onChange(openAIPrefixDebug: boolean) {
@@ -1330,11 +1348,14 @@ export function Config({
       const label = settingsData?.maxApiRetries === undefined || settingsData?.maxApiRetries === 'default' ? 'Reset max API retries to default' : `Set max API retries to ${chalk.bold(String(settingsData.maxApiRetries))}`;
       formattedChanges.push(label);
     }
+    if (settingsData?.parallelToolCalls !== initialSettingsData.current?.parallelToolCalls) {
+      formattedChanges.push(`${settingsData?.parallelToolCalls === true ? 'Enabled' : 'Disabled'} parallel tool calls`);
+    }
     if (settingsData?.openAIResponsesIncrementalWebSocket !== initialSettingsData.current?.openAIResponsesIncrementalWebSocket) {
       formattedChanges.push(`${settingsData?.openAIResponsesIncrementalWebSocket === true ? 'Enabled' : 'Disabled'} OpenAI Responses incremental websocket`);
     }
     if (settingsData?.openAIPrefixDebug !== initialSettingsData.current?.openAIPrefixDebug) {
-      formattedChanges.push(`${settingsData?.openAIPrefixDebug ? 'Enabled' : 'Disabled'} OpenAI prefix debug`);
+      formattedChanges.push(`${settingsData?.openAIPrefixDebug ? 'Enabled' : 'Disabled'} Prefix Debug`);
     }
     if (formattedChanges.length > 0) {
       onClose(formattedChanges.join('\n'));
@@ -1343,7 +1364,7 @@ export function Config({
         display: 'system'
       });
     }
-  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, settingsData?.maxConsecutiveIdenticalToolCalls, settingsData?.maxApiRetries, settingsData?.openAIResponsesIncrementalWebSocket, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
+  }, [showSubmenu, changes, globalConfig, mainLoopModel, currentOutputStyle, currentLanguage, settingsData?.autoUpdatesChannel, settingsData?.samplingTemperature, settingsData?.maxConsecutiveIdenticalToolCalls, settingsData?.maxApiRetries, settingsData?.parallelToolCalls, settingsData?.openAIResponsesIncrementalWebSocket, isFastModeEnabled() ? (settingsData as Record<string, unknown> | undefined)?.fastMode : undefined, onClose]);
 
   // Restore all state stores to their mount-time snapshots. Changes are
   // applied to disk/AppState immediately on toggle, so "cancel" means
@@ -1436,6 +1457,7 @@ export function Config({
       samplingTemperature: il?.samplingTemperature,
       maxConsecutiveIdenticalToolCalls: il?.maxConsecutiveIdenticalToolCalls,
       maxApiRetries: il?.maxApiRetries,
+      parallelToolCalls: il?.parallelToolCalls,
       openAIResponsesIncrementalWebSocket: il?.openAIResponsesIncrementalWebSocket,
       openAIPrefixDebug: il?.openAIPrefixDebug
     });

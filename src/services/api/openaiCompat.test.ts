@@ -1,9 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { APIConnectionError, APIError } from '@anthropic-ai/sdk'
 import {
+  consumeOpenAIPrefixDebugAttachments,
   convertAnthropicRequestToOpenAICodex,
   convertAnthropicRequestToOpenAIResponses,
   createAnthropicStreamFromOpenAI,
+  createAnthropicStreamFromOpenAICodex,
   createAnthropicStreamFromOpenAIResponses,
   createAnthropicStreamFromOpenAIWithEmptyRetry,
   createOpenAICompatStream,
@@ -43,6 +45,33 @@ describe('OpenAI compat APIError conversion', () => {
       expect((e as APIError).message).toContain('OpenAI compatible request failed')
       expect((e as APIError).message).toContain('Bad Gateway')
     }
+  })
+
+  test('createOpenAICompatStream preserves base URL path prefixes', async () => {
+    let requestedUrl = ''
+
+    const reader = await createOpenAICompatStream(
+      {
+        apiKey: 'test',
+        baseURL: 'https://dashscope.aliyuncs.com/compatible-mode',
+        fetch: async (input: string | URL | Request) => {
+          requestedUrl = String(input)
+          return new Response('data: [DONE]\n\n', {
+            status: 200,
+            headers: { 'Content-Type': 'text/event-stream' },
+          })
+        },
+      },
+      { model: 'qwen3.6-plus', messages: [] } as any,
+    )
+
+    expect(requestedUrl).toBe(
+      'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions',
+    )
+    expect(await reader.read()).toEqual({
+      done: false,
+      value: new TextEncoder().encode('data: [DONE]\n\n'),
+    })
   })
 
   test('createOpenAIResponsesStream converts failed response to APIError', async () => {
@@ -328,6 +357,64 @@ describe('OpenAI compat stream parse errors', () => {
     expect(collectToolJson(secondToolIndex!)).toBe('{"b":2}')
     expect(finalMessage?.stop_reason).toBe('tool_use')
   })
+
+  test('createAnthropicStreamFromOpenAICodex accepts response.done and records codex usage debug', async () => {
+    consumeOpenAIPrefixDebugAttachments()
+
+    convertAnthropicRequestToOpenAICodex({
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+      ],
+    })
+
+    const encoder = new TextEncoder()
+    const stream = new ReadableStream<Uint8Array>({
+      start(controller) {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({
+            type: 'response.done',
+            response: {
+              id: 'resp_codex',
+              usage: {
+                input_tokens: 100,
+                output_tokens: 10,
+                total_tokens: 110,
+                input_tokens_details: {
+                  cached_tokens: 80,
+                },
+              },
+            },
+          })}\n\n`),
+        )
+        controller.close()
+      },
+    })
+
+    const finalMessage = await readAllFromGenerator(
+      createAnthropicStreamFromOpenAICodex({
+        reader: stream.getReader(),
+        model: 'gpt-5.4',
+      }),
+    )
+
+    expect(finalMessage?.id).toBe('resp_codex')
+
+    const codexAttachment = consumeOpenAIPrefixDebugAttachments().find(
+      attachment => attachment.requestShape === 'codex',
+    )
+    expect(codexAttachment?.usage).toEqual({
+      inputTokens: 100,
+      outputTokens: 10,
+      cachedTokens: 80,
+      hasInputTokensDetails: true,
+      hasPromptTokensDetails: false,
+    })
+  })
 })
 
 describe('convertAnthropicRequestToOpenAIResponses', () => {
@@ -403,7 +490,7 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
     expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
   })
 
-  test('further scopes prompt_cache_key by first user turn within the same cache scope', () => {
+  test('keeps responses prompt_cache_key stable for different first user turns within the same cache scope', () => {
     const shared = {
       model: 'gpt-5.4',
       system: [{ text: 'Static instructions' }],
@@ -439,7 +526,7 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
     })
 
     expect(requestA1.prompt_cache_key).toBe(requestA2.prompt_cache_key)
-    expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
+    expect(requestA1.prompt_cache_key).toBe(requestB.prompt_cache_key)
   })
 
   test('normalizes responses tool definitions before hashing and sending', () => {
@@ -722,7 +809,7 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
     expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
   })
 
-  test('further scopes codex prompt_cache_key by first user turn within the same cache scope', () => {
+  test('keeps codex prompt_cache_key stable for different first user turns within the same cache scope', () => {
     const shared = {
       model: 'gpt-5.4',
       system: [{ text: 'Static instructions' }],
@@ -759,7 +846,7 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
 
     expect(typeof requestA1.prompt_cache_key).toBe('string')
     expect(requestA1.prompt_cache_key).toBe(requestA2.prompt_cache_key)
-    expect(requestA1.prompt_cache_key).not.toBe(requestB.prompt_cache_key)
+    expect(requestA1.prompt_cache_key).toBe(requestB.prompt_cache_key)
   })
 
   test('keeps codex append-only prefix behavior after adding prompt_cache_key', () => {
@@ -842,6 +929,60 @@ describe('convertAnthropicRequestToOpenAIResponses', () => {
       'function_call',
       'function_call_output',
     ])
+  })
+
+  test('canonicalizes and sorts codex tool definitions for stable cache keys', () => {
+    const baseInput = {
+      model: 'gpt-5.4',
+      system: [{ text: 'Static instructions' }],
+      messages: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Investigate cache misses' }],
+        } as any,
+      ],
+      tools: [
+        {
+          name: 'Zeta',
+          input_schema: {
+            type: 'object',
+            required: ['b', 'a'],
+            properties: {
+              z: { type: 'string' },
+              a: { type: 'string' },
+            },
+          },
+        } as any,
+        {
+          name: 'Alpha',
+          input_schema: {
+            type: 'object',
+            properties: {
+              y: { type: 'string' },
+              x: { type: 'string' },
+            },
+          },
+        } as any,
+      ],
+    }
+
+    const request = convertAnthropicRequestToOpenAICodex(baseInput)
+    const reversedRequest = convertAnthropicRequestToOpenAICodex({
+      ...baseInput,
+      tools: [...baseInput.tools].reverse(),
+    })
+
+    expect(request.tools?.map(tool => tool.name)).toEqual(['Alpha', 'Zeta'])
+    expect(request.tools?.[1]?.parameters).toEqual({
+      properties: {
+        a: { type: 'string' },
+        z: { type: 'string' },
+      },
+      required: ['b', 'a'],
+      type: 'object',
+    })
+    expect(request.tools).toEqual(reversedRequest.tools)
+    expect(request.prompt_cache_key).toBe(reversedRequest.prompt_cache_key)
   })
 
   test('keeps prior tool call outputs in prefix for codex requests too', () => {

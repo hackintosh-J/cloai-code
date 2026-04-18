@@ -547,17 +547,7 @@ export function ConsoleOAuthFlow({
   }, [isEditingTextInput, onTextInputActiveChange]);
   const startCompatibleApiConfig = useCallback((provider: CompatibleApiProvider) => {
     const nextAuthMode = getDefaultAuthMode(provider);
-    const nextVariant = inferProviderVariant({
-      kind: provider,
-      authMode: nextAuthMode,
-      id: getProviderIdForVariant(undefined, provider),
-      provider:
-        provider === 'openai-like'
-          ? 'openai'
-          : provider === 'gemini-like'
-            ? 'gemini'
-            : 'anthropic',
-    });
+    const nextVariant = getCustomVariant(provider, nextAuthMode);
     const nextProviderKey = {
       kind: provider,
       id: getProviderIdForVariant(nextVariant, provider),
@@ -1983,7 +1973,7 @@ function OAuthStatusMessage({
               : variant === 'gemini-ai-studio'
                 ? 'Using official Google AI Studio endpoint:'
                 : 'Using preset endpoint:'
-            : oauthStatus.provider === 'openai-like'
+              : oauthStatus.provider === 'openai-like'
               ? oauthStatus.authMode === 'responses'
                 ? 'Enter the OpenAI-compatible Responses base URL:'
                 : 'Enter the OpenAI-compatible Chat Completions base URL:'
@@ -2099,6 +2089,8 @@ function OAuthStatusMessage({
               ? hasVersionPathSegment(value)
                 ? 'Base URL already includes a version segment. Press Enter to save and continue.'
                 : 'If omitted, /v1beta is added automatically — do not enter it twice. Press Enter to save and continue.'
+              : oauthStatus.step === 'baseURL' && !isOfficial
+                ? `Base URL only; ${routeSuffix} is appended automatically. Press Enter to save and continue.`
               : oauthStatus.step === 'models'
                 ? 'Press Enter to save the models.'
                 : isCopilotSetup

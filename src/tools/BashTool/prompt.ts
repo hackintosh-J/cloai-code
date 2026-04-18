@@ -4,6 +4,7 @@ import { getAttributionTexts } from '../../utils/attribution.js'
 import { hasEmbeddedSearchTools } from '../../utils/embeddedTools.js'
 import { isEnvTruthy } from '../../utils/envUtils.js'
 import { shouldIncludeGitInstructions } from '../../utils/gitSettings.js'
+import { areParallelToolCallsEnabled } from '../../utils/parallelToolCalls.js'
 import { getClaudeTempDir } from '../../utils/permissions/filesystem.js'
 import { SandboxManager } from '../../utils/sandbox/sandbox-adapter.js'
 import { jsonStringify } from '../../utils/slowOperations.js'
@@ -295,7 +296,9 @@ export function getSimplePrompt(): string {
     : '`find`, `grep`, `cat`, `head`, `tail`, `sed`, `awk`, or `echo`'
 
   const multipleCommandsSubitems = [
-    `If the commands are independent and can run in parallel, make multiple ${BASH_TOOL_NAME} tool calls in a single message. Example: if you need to run "git status" and "git diff", send a single message with two ${BASH_TOOL_NAME} tool calls in parallel.`,
+    areParallelToolCallsEnabled()
+      ? `If the commands are independent and can run in parallel, make multiple ${BASH_TOOL_NAME} tool calls in a single message. Example: if you need to run "git status" and "git diff", send a single message with two ${BASH_TOOL_NAME} tool calls in parallel.`
+      : `Parallel tool calls are disabled. Make at most one ${BASH_TOOL_NAME} tool call per message, wait for the result, then decide whether to run another command.`,
     `If the commands depend on each other and must run sequentially, use a single ${BASH_TOOL_NAME} call with '&&' to chain them together.`,
     "Use ';' only when you need to run commands sequentially but don't care if earlier commands fail.",
     'DO NOT use newlines to separate commands (newlines are ok in quoted strings).',

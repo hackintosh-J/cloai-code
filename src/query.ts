@@ -103,6 +103,10 @@ import { recordContentReplacement } from './utils/sessionStorage.js'
 import { handleStopHooks } from './query/stopHooks.js'
 import { buildQueryConfig } from './query/config.js'
 import { getInitialSettings } from './utils/settings/settings.js'
+import {
+  getActiveProviderConfig,
+  readCustomApiStorage,
+} from './utils/customApiStorage.js'
 import { productionDeps, type QueryDeps } from './query/deps.js'
 import type { Terminal, Continue } from './query/transitions.js'
 import { feature } from 'bun:bundle'
@@ -381,6 +385,7 @@ async function* queryLoop(
   // Snapshot immutable env/statsig/session state once at entry. See QueryConfig
   // for what's included and why feature() gates are intentionally excluded.
   const settings = getInitialSettings()
+  const parallelToolCallsEnabled = settings.parallelToolCalls === true
   let maxConsecutiveIdenticalToolCallsOverride: number | undefined
   if (typeof settings.maxConsecutiveIdenticalToolCalls === 'number') {
     maxConsecutiveIdenticalToolCallsOverride = Math.max(1, settings.maxConsecutiveIdenticalToolCalls)
@@ -388,6 +393,14 @@ async function* queryLoop(
   const config = buildQueryConfig({
     maxConsecutiveIdenticalToolCalls: maxConsecutiveIdenticalToolCallsOverride,
   })
+  const customApiStorage = readCustomApiStorage()
+  const activeProviderConfig = getActiveProviderConfig(customApiStorage)
+  const shouldForceSerialToolExecutionByConfig = !parallelToolCallsEnabled
+  const shouldForceSerialToolExecutionForOpenAI =
+    parallelToolCallsEnabled &&
+    (activeProviderConfig?.kind === 'openai-like' ||
+      (activeProviderConfig === undefined &&
+        customApiStorage.providerKind === 'openai-like'))
 
   // Fired once per user turn — the prompt is invariant across loop iterations,
   // so per-iteration firing would ask sideQuery the same question N times.
@@ -404,6 +417,15 @@ async function* queryLoop(
     // is reassigned within an iteration (queryTracking, messages updates);
     // the rest are read-only between continue sites.
     let { toolUseContext } = state
+    if (
+      shouldForceSerialToolExecutionByConfig &&
+      !toolUseContext.forceSerialToolExecution
+    ) {
+      toolUseContext = {
+        ...toolUseContext,
+        forceSerialToolExecution: true,
+      }
+    }
     const {
       messages,
       autoCompactTracking,
@@ -1687,9 +1709,9 @@ async function* queryLoop(
       }
 
       for (const debugAttachment of consumeOpenAIPrefixDebugAttachments()) {
-        if (debugAttachment.requestShape !== 'responses') continue
         const msg = createAttachmentMessage({
           type: 'openai_prefix_debug',
+          requestShape: debugAttachment.requestShape,
           model: debugAttachment.model,
           promptCacheKey: debugAttachment.promptCacheKey,
           payloadPath: debugAttachment.payloadPath,
@@ -1833,9 +1855,18 @@ async function* queryLoop(
       }
 
       queryCheckpoint('query_recursive_call')
-      const shouldForceSerialToolExecution = shouldInjectToolRecoveryMessage(
+      const shouldInjectTransientToolRecoveryMessage = shouldInjectToolRecoveryMessage(
         toolResults,
       )
+      const shouldInjectParallelToolRecoveryMessage =
+        toolUseBlocks.length > 1 &&
+        (shouldForceSerialToolExecutionByConfig ||
+          shouldForceSerialToolExecutionForOpenAI)
+      const shouldForceSerialToolExecution =
+        shouldForceSerialToolExecutionByConfig ||
+        shouldForceSerialToolExecutionForOpenAI ||
+        shouldInjectTransientToolRecoveryMessage ||
+        shouldInjectParallelToolRecoveryMessage
       const toolLoopFingerprint = getToolLoopFingerprint(toolUseBlocks)
       if (shouldForceSerialToolExecution) {
         lastToolLoopFingerprint = undefined
@@ -1854,7 +1885,7 @@ async function* queryLoop(
         })
         return { reason: 'model_error', error: new Error(errorMessage) }
       }
-      const recoveryMessages = shouldForceSerialToolExecution
+      const recoveryMessages = shouldInjectTransientToolRecoveryMessage
         ? [
             createUserMessage({
               content:
@@ -1862,7 +1893,16 @@ async function* queryLoop(
               isMeta: true,
             }),
           ]
-        : []
+        : shouldInjectParallelToolRecoveryMessage
+          ? [
+              createUserMessage({
+                content: shouldForceSerialToolExecutionByConfig
+                  ? 'Parallel tool calls are disabled for this session. You just returned multiple tool calls in one response. Treat all of the resulting tool_result blocks as valid results from the same batch, but from now on make at most one tool call per response and wait for its result before issuing another tool call.'
+                  : 'The previous turn used multiple tool calls in parallel. Treat all resulting tool_result blocks as one completed batch before deciding what to do next. If you still need more tool calls, make at most one tool call in your next response and wait for its result before issuing another tool call.',
+                isMeta: true,
+              }),
+            ]
+          : []
       const next: State = {
         messages: [
           ...messagesForQuery,

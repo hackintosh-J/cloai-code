@@ -257,6 +257,12 @@ export function AttachmentMessage({
       return <DiagnosticsDisplay attachment={attachment} verbose={verbose} />;
     case 'openai_prefix_debug':
       {
+        const requestShape = attachment.requestShape ?? 'responses';
+        const requestLabel = requestShape === 'codex'
+          ? 'codex'
+          : requestShape === 'chat'
+            ? 'chat'
+            : 'responses';
         const cachedTokens = attachment.usage?.cachedTokens ?? 0;
         const inputTokens = attachment.usage?.inputTokens ?? 0;
         const outputTokens = attachment.usage?.outputTokens ?? 0;
@@ -278,10 +284,13 @@ export function AttachmentMessage({
         const coveragePct = inputTokens > 0 ? (cachedTokens / inputTokens * 100).toFixed(1) : '0.0';
         return <Box flexDirection="column" marginTop={addMargin ? 1 : 0} backgroundColor={bg} paddingLeft={2}>
             <Text color={cachedTokens > 0 ? undefined : 'error'}>
-              {cachedTokens > 0 ? `cached ${formatNumber(cachedTokens)} tokens` : `responses cache miss · input ${formatNumber(inputTokens)} tokens`}
+              {cachedTokens > 0 ? `cached ${formatNumber(cachedTokens)} tokens` : `${requestLabel} cache miss · input ${formatNumber(inputTokens)} tokens`}
             </Text>
             <Text dimColor={true}>
               {`coverage ${formatNumber(cachedTokens)}/${formatNumber(inputTokens)} (${coveragePct}%) · output ${formatNumber(outputTokens)}`}
+            </Text>
+            <Text dimColor={true}>
+              {`request ${requestLabel}`}
             </Text>
             <Text dimColor={true}>
               {`prefix ${sharedPrefixItems}/${totalItems} items · divergence ${firstDivergenceIndex >= 0 ? firstDivergenceIndex : 'none'}`}

@@ -523,6 +523,7 @@ export type Attachment =
     }
   | {
       type: 'openai_prefix_debug'
+      requestShape?: 'chat' | 'responses' | 'codex'
       model: string
       promptCacheKey?: string
       payloadPath?: string

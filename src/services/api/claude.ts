@@ -2166,10 +2166,16 @@ async function* queryModel(
             const openAICodexRequest = convertAnthropicRequestToOpenAICodex({
               model: params.model,
               system: params.system,
-              messages: params.messages,
+              messages: messagesForAPI.map(msg => msg.message as MessageParam),
               tools: params.tools,
               temperature: params.temperature,
+              cacheScopeKey: getOpenAIResponsesCacheScopeKey({
+                querySource: options.querySource,
+                agentId: options.agentId,
+                queryTracking: options.queryTracking,
+              }),
             })
+            const openAICodexPromptCacheKey = openAICodexRequest.prompt_cache_key
             const reader = await createOpenAICodexStream(
               {
                 apiKey: (effectiveOpenAIProvider?.apiKey ?? process.env.CLOAI_API_KEY) || '',
@@ -2178,6 +2184,7 @@ async function* queryModel(
                   ? { [CLIENT_REQUEST_ID_HEADER]: clientRequestId }
                   : undefined,
                 fetch: globalThis.fetch,
+                promptCacheKey: openAICodexPromptCacheKey,
               },
               openAICodexRequest,
               signal,
@@ -2194,6 +2201,7 @@ async function* queryModel(
                       ? { [CLIENT_REQUEST_ID_HEADER]: clientRequestId }
                       : undefined,
                     fetch: globalThis.fetch,
+                    promptCacheKey: openAICodexPromptCacheKey,
                   },
                   openAICodexRequest,
                   signal,

@@ -15,6 +15,7 @@ import { getSessionId } from '../../bootstrap/state.js'
 import { type ProviderConfig, getActiveProviderConfig, readCustomApiStorage, writeCustomApiStorage } from '../../utils/customApiStorage.js'
 import { getUserAgent } from '../../utils/http.js'
 import { getWebSocketTLSOptions } from '../../utils/mtls.js'
+import { areParallelToolCallsEnabled } from '../../utils/parallelToolCalls.js'
 import { getWebSocketProxyAgent } from '../../utils/proxy.js'
 import { getInitialSettings } from '../../utils/settings/settings.js'
 import { logEvent } from '../analytics/index.js'
@@ -206,6 +207,13 @@ type OpenAICodexConfig = {
   baseURL?: string
   headers?: Record<string, string>
   fetch?: typeof globalThis.fetch
+  /** When set, injects ChatGPT OAuth-specific headers for prompt cache stability:
+   *   OpenAI-Beta: responses=experimental
+   *   conversation_id: promptCacheKey (stable per session/query)
+   *   session_id: promptCacheKey
+   *   originator: cloai-client
+   */
+  promptCacheKey?: string
 }
 
 type OpenAIToolCall = {
@@ -351,14 +359,6 @@ type ResponsesStreamEvent =
   | CodexErrorEvent
   | { type: string; [key: string]: unknown }
 
-function shouldDisableParallelToolCalls(): boolean {
-  const raw = process.env.CLOAI_OPENAI_PARALLEL_TOOL_CALLS?.trim().toLowerCase()
-  if (raw === '1' || raw === 'true' || raw === 'yes' || raw === 'on') {
-    return false
-  }
-  return true
-}
-
 export type OpenAICodexRequest = {
   model: string
   instructions?: string
@@ -375,6 +375,7 @@ export type OpenAICodexRequest = {
     name: string
     description?: string
     parameters?: unknown
+    strict?: boolean | null
   }>
   reasoning?: {
     effort?: 'none' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh'
@@ -550,6 +551,10 @@ function getOpenAIResponsesWebSocketClientRequestId(
   )
   const configuredId = headerKey ? config.headers?.[headerKey] : undefined
   return configuredId?.trim() || request.prompt_cache_key || getSessionId()
+}
+
+function getStableOpenAIPromptCacheKey(cacheScopeKey?: string): string {
+  return cacheScopeKey?.trim() || getSessionId()
 }
 
 function buildOpenAIResponsesWebSocketClientMetadata(
@@ -811,14 +816,6 @@ function appendDynamicInstructionsToCodexInput(
 ): void {
   if (!dynamicInstructions) return
 
-  for (let i = input.length - 1; i >= 0; i--) {
-    const item = input[i]
-    if ('role' in item && item.role === 'user') {
-      appendDynamicInstructionsToTextParts(item.content, dynamicInstructions)
-      return
-    }
-  }
-
   input.push({
     role: 'user',
     content: [
@@ -990,28 +987,35 @@ export function consumeOpenAIPrefixDebugAttachments(): OpenAIPrefixFingerprint[]
   return pendingPrefixDebugAttachments.splice(0, pendingPrefixDebugAttachments.length)
 }
 
-function attachOpenAIResponsesUsageDebug(usage?: {
-  input_tokens?: number
-  output_tokens?: number
-  prompt_tokens?: number
-  completion_tokens?: number
-  input_tokens_details?: {
-    cached_tokens?: number
-  }
-  prompt_tokens_details?: {
-    cached_tokens?: number
-  }
-}): void {
+function attachOpenAIResponsesUsageDebug(
+  usage: {
+    input_tokens?: number
+    output_tokens?: number
+    prompt_tokens?: number
+    completion_tokens?: number
+    input_tokens_details?: {
+      cached_tokens?: number
+    }
+    prompt_tokens_details?: {
+      cached_tokens?: number
+    }
+  } | undefined,
+  requestShape: 'responses' | 'codex' = 'responses',
+): void {
+  const inputTokens = usage?.input_tokens ?? usage?.prompt_tokens ?? 0
+  const outputTokens = usage?.output_tokens ?? usage?.completion_tokens ?? 0
+  const cachedTokens =
+    usage?.input_tokens_details?.cached_tokens ??
+    usage?.prompt_tokens_details?.cached_tokens ??
+    0
+
   for (let i = pendingPrefixDebugAttachments.length - 1; i >= 0; i--) {
     const attachment = pendingPrefixDebugAttachments[i]
-    if (attachment.requestShape !== 'responses') continue
+    if (attachment.requestShape !== requestShape) continue
     attachment.usage = {
-      inputTokens: usage?.input_tokens ?? usage?.prompt_tokens ?? 0,
-      outputTokens: usage?.output_tokens ?? usage?.completion_tokens ?? 0,
-      cachedTokens:
-        usage?.input_tokens_details?.cached_tokens ??
-        usage?.prompt_tokens_details?.cached_tokens ??
-        0,
+      inputTokens,
+      outputTokens,
+      cachedTokens,
       hasInputTokensDetails: usage?.input_tokens_details !== undefined,
       hasPromptTokensDetails: usage?.prompt_tokens_details !== undefined,
     }
@@ -1022,14 +1026,22 @@ function attachOpenAIResponsesUsageDebug(usage?: {
 type CodexResponseUsage = {
   input_tokens?: number
   output_tokens?: number
+  prompt_tokens?: number
+  completion_tokens?: number
+  input_tokens_details?: {
+    cached_tokens?: number
+  }
   total_tokens?: number
   input_tokens_details?: {
+    cached_tokens?: number
+  }
+  prompt_tokens_details?: {
     cached_tokens?: number
   }
 }
 
 type CodexResponseCompletedEvent = {
-  type: 'response.completed'
+  type: 'response.completed' | 'response.done' | 'response.incomplete'
   response?: {
     id?: string
     status?: string
@@ -1111,9 +1123,9 @@ type CodexStreamEvent =
 
 function joinBaseUrl(baseURL: string, path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`
-  const normalizedBaseURL = baseURL.trim()
+  const normalizedBaseURL = baseURL.trim().replace(/\/+$/, '')
   try {
-    return new URL(normalizedPath, `${normalizedBaseURL.replace(/\/$/, '')}/`).toString()
+    return new URL(`${normalizedBaseURL}${normalizedPath}`).toString()
   } catch {
     throw new Error(`Invalid OpenAI-compatible base URL: ${normalizedBaseURL}`)
   }
@@ -1240,10 +1252,13 @@ function getCodexToolDefinitions(tools?: BetaToolUnion[]): OpenAICodexRequest['t
       name,
       description:
         typeof record.description === 'string' ? record.description : undefined,
-      parameters: record.input_schema,
+      parameters: canonicalizeJson(record.input_schema),
+      strict: null,
     }]
   })
-  return mapped.length > 0 ? mapped : undefined
+  return mapped.length > 0
+    ? mapped.sort((left, right) => left.name.localeCompare(right.name))
+    : undefined
 }
 
 function stripAnthropicSignatureBlocks(
@@ -1495,13 +1510,7 @@ export function convertAnthropicRequestToOpenAICodex(input: {
   const conversationAnchor = getResponsesConversationAnchor(
     codexInput.filter(item => 'role' in item) as OpenAIResponsesInputItem[],
   )
-  const promptCacheKey = hashStableJson({
-    cacheScopeKey: input.cacheScopeKey ?? 'global',
-    conversationAnchor,
-    model: targetModel,
-    instructions: instructions ?? '',
-    tools: toolDefinitions ?? [],
-  })
+  const promptCacheKey = getStableOpenAIPromptCacheKey(input.cacheScopeKey)
   logOpenAIPrefixFingerprint({
     requestShape: 'codex',
     model: targetModel,
@@ -1533,6 +1542,7 @@ export function convertAnthropicRequestToOpenAICodex(input: {
     text: { verbosity: reasoning?.textVerbosity === 'low' || reasoning?.textVerbosity === 'high' ? reasoning.textVerbosity : 'medium' },
     include: ['reasoning.encrypted_content'],
     tool_choice: 'auto',
+    parallel_tool_calls: areParallelToolCallsEnabled(),
     ...(reasoning?.reasoningEffort
       ? {
           reasoning: {
@@ -1759,13 +1769,7 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
     dynamicInstructions,
   )
   const conversationAnchor = getResponsesConversationAnchor(fullResponseInput)
-  const promptCacheKey = hashStableJson({
-    cacheScopeKey: input.cacheScopeKey ?? 'global',
-    conversationAnchor,
-    model: targetModel,
-    instructions: instructions ?? '',
-    tools: toolDefinitions ?? [],
-  })
+  const promptCacheKey = getStableOpenAIPromptCacheKey(input.cacheScopeKey)
   logOpenAIPrefixFingerprint({
     requestShape: 'responses',
     model: targetModel,
@@ -1801,7 +1805,7 @@ export function convertAnthropicRequestToOpenAIResponses(input: {
       ? {
           tools: toolDefinitions,
           tool_choice: 'auto' as const,
-          parallel_tool_calls: !shouldDisableParallelToolCalls(),
+          parallel_tool_calls: areParallelToolCallsEnabled(),
           include: ['reasoning.encrypted_content'] as const,
         }
       : {
@@ -1960,10 +1964,22 @@ export async function createOpenAICodexStream(
   request: OpenAICodexRequest,
   signal?: AbortSignal,
 ): Promise<ReadableStreamDefaultReader<Uint8Array>> {
+  // Inject ChatGPT OAuth-specific headers for prompt cache stability.
+  // These mirror what sub2api injects for OAuth accounts so that direct OAuth
+  // requests also get stable conversation_id/session_id → cached prompt hits.
+  const oauthHeaders: Record<string, string> = config.promptCacheKey
+    ? {
+        'OpenAI-Beta': 'responses=experimental',
+        'originator': 'cloai-client',
+        'conversation_id': config.promptCacheKey,
+        'session_id': config.promptCacheKey,
+      }
+    : {}
+  const headers = { ...oauthHeaders, ...config.headers }
   return performOpenAIStreamRequest({
     apiKey: config.apiKey,
     baseURL: '',
-    headers: config.headers,
+    headers,
     fetch: config.fetch,
     signal,
     path: resolveCodexUrl(config.baseURL),
@@ -2686,6 +2702,7 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
   reader: ReadableStreamDefaultReader<Uint8Array>
   model: string
   request?: OpenAIResponsesRequest
+  requestShape?: 'responses' | 'codex'
 }): AsyncGenerator<BetaRawMessageStreamEvent, BetaMessage, void> {
   const decoder = new TextDecoder()
   let buffer = ''
@@ -3053,8 +3070,15 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
           continue
         }
 
-        if (event.type === 'response.completed') {
-          attachOpenAIResponsesUsageDebug(event.response?.usage)
+        if (
+          event.type === 'response.completed' ||
+          event.type === 'response.done' ||
+          event.type === 'response.incomplete'
+        ) {
+          attachOpenAIResponsesUsageDebug(
+            event.response?.usage,
+            input.requestShape ?? 'responses',
+          )
           const mappedUsage = mapOpenAIResponsesUsageToAnthropic(event.response?.usage)
           promptTokens = mappedUsage?.input_tokens ?? event.response?.usage?.input_tokens ?? 0
           completionTokens = mappedUsage?.output_tokens ?? event.response?.usage?.output_tokens ?? 0
@@ -3107,7 +3131,10 @@ export async function* createAnthropicStreamFromOpenAICodex(input: {
   model: string
   request?: OpenAIResponsesRequest
 }): AsyncGenerator<BetaRawMessageStreamEvent, BetaMessage, void> {
-  yield* createAnthropicStreamFromOpenAIResponses(input)
+  return yield* createAnthropicStreamFromOpenAIResponses({
+    ...input,
+    requestShape: 'codex',
+  })
 }
 
 function mapOpenAIResponsesUsageToAnthropic(usage?: {

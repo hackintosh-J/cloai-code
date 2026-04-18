@@ -1,4 +1,5 @@
 import { isEnvTruthy } from '../../utils/envUtils.js'
+import { areParallelToolCallsEnabled } from '../../utils/parallelToolCalls.js'
 import { getMaxOutputLength } from '../../utils/shell/outputLimits.js'
 import {
   getPowerShellEdition,
@@ -132,7 +133,7 @@ ${backgroundNote ? backgroundNote + '\n' : ''}\
     - Write files: Use ${FILE_WRITE_TOOL_NAME} (NOT Set-Content/Out-File)
     - Communication: Output text directly (NOT Write-Output/Write-Host)
   - When issuing multiple commands:
-    - If the commands are independent and can run in parallel, make multiple ${POWERSHELL_TOOL_NAME} tool calls in a single message.
+    - ${areParallelToolCallsEnabled() ? `If the commands are independent and can run in parallel, make multiple ${POWERSHELL_TOOL_NAME} tool calls in a single message.` : `Parallel tool calls are disabled. Make at most one ${POWERSHELL_TOOL_NAME} tool call per message, wait for the result, then decide whether another command is needed.`}
     - If the commands depend on each other and must run sequentially, chain them in a single ${POWERSHELL_TOOL_NAME} call (see edition-specific chaining syntax above).
     - Use \`;\` only when you need to run commands sequentially but don't care if earlier commands fail.
     - DO NOT use newlines to separate commands (newlines are ok in quoted strings and here-strings)

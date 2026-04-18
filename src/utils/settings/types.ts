@@ -412,6 +412,12 @@ export const SettingsSchema = lazySchema(() =>
         .describe(
           'Maximum number of API retry attempts. Default is 15. Use default to use the built-in limit, off to disable retries (0), always for persistent retries, or a non-negative integer for a custom limit.',
         ),
+      parallelToolCalls: z
+        .boolean()
+        .optional()
+        .describe(
+          'Whether models are allowed to issue parallel tool calls. Default is false. When false, requests and local tool execution are forced into single-tool-at-a-time mode to protect context integrity.',
+        ),
       // Enterprise allowlist of models
       availableModels: z
         .array(z.string())
@@ -999,7 +1005,7 @@ export const SettingsSchema = lazySchema(() =>
         .boolean()
         .optional()
         .describe(
-          'Show OpenAI Responses prefix-cache debug attachments in the transcript. Default: false.',
+          'Show prefix-cache debug attachments in the transcript for OpenAI-compatible requests across all models. Default: false.',
         ),
       openAIResponsesIncrementalWebSocket: z
         .boolean()
