@@ -6,6 +6,8 @@ packages/
 
 .stfolder/
 .stversions/
+.stignore
+desktop/
 
 dist/
 build/

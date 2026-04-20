@@ -222,6 +222,36 @@ describe('OpenAI compat stream parse errors', () => {
     }
   })
 
+  test('createAnthropicStreamFromOpenAIResponses fails fast when provider never emits a first event', async () => {
+    const previousTimeout = process.env.CLOAI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS
+    process.env.CLOAI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS = '10'
+
+    const stream = new ReadableStream<Uint8Array>({
+      start() {},
+    })
+
+    const generator = createAnthropicStreamFromOpenAIResponses({
+      reader: stream.getReader(),
+      model: 'gpt-5.4-mini',
+    })
+
+    try {
+      await generator.next()
+      expect().fail('Should have thrown')
+    } catch (e) {
+      expect((e as Error).message).toContain(
+        '[openaiCompat] responses stream timed out waiting for first event',
+      )
+    } finally {
+      if (previousTimeout === undefined) {
+        delete process.env.CLOAI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS
+      } else {
+        process.env.CLOAI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS = previousTimeout
+      }
+      await generator.return(undefined)
+    }
+  })
+
   test('createAnthropicStreamFromOpenAIResponses routes interleaved parallel tool deltas to the correct tool blocks', async () => {
     const encoder = new TextEncoder()
     const events = [

@@ -2382,6 +2382,52 @@ function shouldRetryOpenAIStreamingParseError(message: string): boolean {
   )
 }
 
+function getOpenAIStreamTimeoutMs(kind: 'first-event' | 'idle'): number {
+  const envKey =
+    kind === 'first-event'
+      ? 'CLOAI_OPENAI_STREAM_FIRST_EVENT_TIMEOUT_MS'
+      : 'CLOAI_OPENAI_STREAM_IDLE_TIMEOUT_MS'
+  const fallbackMs = kind === 'first-event' ? 30_000 : 5 * 60 * 1000
+  const raw = process.env[envKey]
+  const parsed = raw ? Number.parseInt(raw, 10) : Number.NaN
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallbackMs
+}
+
+async function readOpenAIStreamChunkWithTimeout(input: {
+  reader: ReadableStreamDefaultReader<Uint8Array>
+  model: string
+  requestShape: 'chat' | 'responses' | 'codex'
+  sawAnyBytes: boolean
+}): Promise<ReadableStreamReadResult<Uint8Array>> {
+  const phase = input.sawAnyBytes ? 'next event' : 'first event'
+  const timeoutMs = getOpenAIStreamTimeoutMs(
+    input.sawAnyBytes ? 'idle' : 'first-event',
+  )
+  let timeoutId: ReturnType<typeof setTimeout> | undefined
+
+  try {
+    return await Promise.race([
+      input.reader.read(),
+      new Promise<ReadableStreamReadResult<Uint8Array>>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(
+            new Error(
+              `[openaiCompat] ${input.requestShape} stream timed out waiting for ${phase} after ${timeoutMs}ms for model=${input.model}`,
+            ),
+          )
+        }, timeoutMs)
+      }),
+    ])
+  } catch (error) {
+    await input.reader.cancel().catch(() => {})
+    throw error instanceof Error ? error : new Error(String(error))
+  } finally {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+  }
+}
+
 function sleep(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
@@ -2440,6 +2486,7 @@ export async function* createAnthropicStreamFromOpenAI(input: {
   const decoder = new TextDecoder()
   let buffer = ''
   let started = false
+  let sawAnyBytes = false
   let textContentIndex: number | null = null
   let thinkingContentIndex: number | null = null
   let toolIndexByOpenAIIndex = new Map<number, number>()
@@ -2459,8 +2506,16 @@ export async function* createAnthropicStreamFromOpenAI(input: {
   }
 
   while (true) {
-    const { done, value } = await input.reader.read()
+    const { done, value } = await readOpenAIStreamChunkWithTimeout({
+      reader: input.reader,
+      model: input.model,
+      requestShape: 'chat',
+      sawAnyBytes,
+    })
     if (done) break
+    if (value && value.length > 0) {
+      sawAnyBytes = true
+    }
     buffer += decoder.decode(value, { stream: true })
     const parsed = parseSSEChunk(buffer)
     buffer = parsed.remainder
@@ -2712,6 +2767,7 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
   const decoder = new TextDecoder()
   let buffer = ''
   let started = false
+  let sawAnyBytes = false
   let currentTextIndex: number | null = null
   let currentThinkingIndex: number | null = null
   let promptTokens = 0
@@ -2798,8 +2854,16 @@ export async function* createAnthropicStreamFromOpenAIResponses(input: {
   }
 
   while (true) {
-    const { done, value } = await input.reader.read()
+    const { done, value } = await readOpenAIStreamChunkWithTimeout({
+      reader: input.reader,
+      model: input.model,
+      requestShape: input.requestShape ?? 'responses',
+      sawAnyBytes,
+    })
     if (done) break
+    if (value && value.length > 0) {
+      sawAnyBytes = true
+    }
     buffer += decoder.decode(value, { stream: true })
     const parsed = parseSSEChunk(buffer)
     buffer = parsed.remainder
