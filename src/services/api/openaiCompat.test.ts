@@ -389,61 +389,72 @@ describe('OpenAI compat stream parse errors', () => {
   })
 
   test('createAnthropicStreamFromOpenAICodex accepts response.done and records codex usage debug', async () => {
+    const previousPrefixDebug = process.env.CLOAI_OPENAI_PREFIX_DEBUG
+    process.env.CLOAI_OPENAI_PREFIX_DEBUG = '1'
     consumeOpenAIPrefixDebugAttachments()
 
-    convertAnthropicRequestToOpenAICodex({
-      model: 'gpt-5.4',
-      system: [{ text: 'Static instructions' }],
-      messages: [
-        {
-          role: 'user',
-          content: [{ type: 'text', text: 'Investigate cache misses' }],
-        } as any,
-      ],
-    })
+    try {
+      convertAnthropicRequestToOpenAICodex({
+        model: 'gpt-5.4',
+        system: [{ text: 'Static instructions' }],
+        messages: [
+          {
+            role: 'user',
+            content: [{ type: 'text', text: 'Investigate cache misses' }],
+          } as any,
+        ],
+      })
 
-    const encoder = new TextEncoder()
-    const stream = new ReadableStream<Uint8Array>({
-      start(controller) {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({
-            type: 'response.done',
-            response: {
-              id: 'resp_codex',
-              usage: {
-                input_tokens: 100,
-                output_tokens: 10,
-                total_tokens: 110,
-                input_tokens_details: {
-                  cached_tokens: 80,
+      const encoder = new TextEncoder()
+      const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({
+              type: 'response.done',
+              response: {
+                id: 'resp_codex',
+                usage: {
+                  input_tokens: 100,
+                  output_tokens: 10,
+                  total_tokens: 110,
+                  input_tokens_details: {
+                    cached_tokens: 80,
+                  },
                 },
               },
-            },
-          })}\n\n`),
-        )
-        controller.close()
-      },
-    })
+            })}\n\n`),
+          )
+          controller.close()
+        },
+      })
 
-    const finalMessage = await readAllFromGenerator(
-      createAnthropicStreamFromOpenAICodex({
-        reader: stream.getReader(),
-        model: 'gpt-5.4',
-      }),
-    )
+      const finalMessage = await readAllFromGenerator(
+        createAnthropicStreamFromOpenAICodex({
+          reader: stream.getReader(),
+          model: 'gpt-5.4',
+        }),
+      )
 
-    expect(finalMessage?.id).toBe('resp_codex')
+      expect(finalMessage?.id).toBe('resp_codex')
 
-    const codexAttachment = consumeOpenAIPrefixDebugAttachments().find(
-      attachment => attachment.requestShape === 'codex',
-    )
-    expect(codexAttachment?.usage).toEqual({
-      inputTokens: 100,
-      outputTokens: 10,
-      cachedTokens: 80,
-      hasInputTokensDetails: true,
-      hasPromptTokensDetails: false,
-    })
+      const codexAttachment = consumeOpenAIPrefixDebugAttachments().find(
+        attachment => attachment.requestShape === 'codex',
+      )
+      expect(codexAttachment?.usage).toEqual({
+        inputTokens: 100,
+        outputTokens: 10,
+        cachedTokens: 80,
+        hasInputTokensDetails: true,
+        hasPromptTokensDetails: false,
+      })
+    } finally {
+      if (previousPrefixDebug === undefined) {
+        delete process.env.CLOAI_OPENAI_PREFIX_DEBUG
+      } else {
+        process.env.CLOAI_OPENAI_PREFIX_DEBUG = previousPrefixDebug
+      }
+      consumeOpenAIPrefixDebugAttachments()
+    }
   })
 })
 
