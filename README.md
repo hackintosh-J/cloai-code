@@ -19,7 +19,8 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 4 月 19 日**
+更新于 **2026 年 4 月 22 日** 
+（cloai-desktop前端赶工中…）
 
 - ⭐ **新增 GitHub Copilot OAuth 的 GPT 系列模型缓存支持**：补齐对应 OpenAI-compatible 路径上的 Responses 缓存命中能力。
 
