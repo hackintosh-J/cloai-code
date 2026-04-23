@@ -19,11 +19,9 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 4 月 22 日** 
-（cloai-desktop前端赶工中…）
-
+更新于 **2026 年 4 月 24 日** 
+- ⭐ **cloai Desktop 0.0.1 预览版发布**：把 cloai 的桌面前端接到本地 bridge 和自托管模型配置上，1:1 还原官方 UI，自带完整 Agent、Artifacts 和独立知识库能力！（详见下方桌面端介绍）
 - ⭐ **新增 GitHub Copilot OAuth 的 GPT 系列模型缓存支持**：补齐对应 OpenAI-compatible 路径上的 Responses 缓存命中能力。
-
 - ⭐ **`/login` 登录体系重写**：新增账号管理、Provider 分组、官方/自定义子菜单、分步配置与 OAuth 回填，整个登录链路从一次性录入升级为可持续管理的闭环。
 - ⭐ **正式支持 GitHub Copilot OAuth**：已实测 `gpt-5-mini`、`claude-haiku-4.5`、`gemini-3-flash-preview`，并补齐 OpenAI OAuth、Google AI Studio、Google Antigravity (OAuth) 等官方线路。
 - ⭐ **官方 / OAuth 线路支持自动写入模型列表**：OpenAI Official / OAuth、Google AI Studio、Google Antigravity (OAuth)、GitHub Copilot OAuth 登录完成后即可在 `/model` 直接切换。
@@ -61,6 +59,34 @@
   * 🔄 **配置统一，易于排障**：全局语义一致，问题定位更直观。
 
 如果你的主力工作台是**云主机、跳板机、远程开发容器**或**无 GUI 的 Linux / Windows Server 终端**，这种“原生接入”将为你带来和原生 CLI 体验一致的爽感。
+
+-----
+
+## 🖥️ 桌面端：Cloai Desktop (0.0.1 预览版，源代码将在稳定后提交)
+
+如果你不习惯纯命令行操作，现在可以使用全新的 **Cloai Desktop** 桌面应用。它将 Claude Code 强大的文件处理和代码执行能力，包装进了一个还原官方 Web 体验的图形化界面中。
+
+### 核心特性
+
+- **1:1 官方交互体验**：提供深色模式、流式输出、折叠式 thinking 块、工具调用实时卡片展示，保留了原版模型连贯的对话节奏。
+- **全量可视化 Agent 能力**：支持在 UI 中直观地监控模型调用 Read/Write/Edit、Bash 执行命令、网页搜索等原生工具。左下角支持切换至 Deep Research 模式进行多线程深度检索。
+- **Artifacts 与 Projects 支持**：
+  - 代码及 HTML/JSX 产物能在右侧 Artifacts 面板中实时渲染、预览和对比编辑。
+  - 支持建立 Projects 知识库，挂载各种格式的文档作为背景上下文。
+- **任意模型自托管接入**：内置 Anthropic ↔ OpenAI 格式双向代理。无论是接 OpenAI、DeepSeek、Qwen 还是各类聚合网关，只需在设置中填入配置即可。
+
+### 架构与运行逻辑
+
+桌面端采用纯本地化部署结构：
+1. **Tauri 前端**：基于 React 构建用户界面。
+2. **Bridge Server (本地服务)**：处理前端与引擎的通信，并负责多格式模型的双向代理转换。
+3. **CLI 引擎层**：底层通过挂载的 Claude Code (Bun) 运行所有实际的 Context 和工具调用。
+
+### 快速操作指南
+
+1. **安装**：在仓库 Releases 页面下载对应系统的安装包（当前仅支持 `.exe` ，`.dmg` 与 `.AppImage` 将随后提供）。
+2. **配置模型**：打开桌面端后，进入 **Settings → Models**，添加你的自定义 Provider（填入第三方 Base URL 和 API Key）。**为稳定性考虑，强烈建议在 cloai-code 中添加配置后一键导入**。
+3. **开始使用**：在主对话界面即可像使用网页版一样对话。可以使用输入框的 `+` 菜单调用 `/skill-name` 触发保存在 `~/.claude/skills/` 的自定义指令集。
 
 -----
 
@@ -807,6 +833,9 @@ cloai
 -----
 
 ## 详细更新日志
+
+### 2026 年 4 月 24 日更新
+- 发布 Cloai Desktop 0.0.1 预览版，采用 Tauri 2 + React 19 构建跨平台桌面应用；通过独立的本地 Bridge Server 实现 GUI 与底层引擎的通信和多格式代理转换。
 
 ### 2026 年 4 月 19 日更新
 
