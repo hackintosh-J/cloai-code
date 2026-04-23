@@ -64,6 +64,9 @@
 
 ## 🖥️ 桌面端：Cloai Desktop (0.0.1 预览版，源代码将在稳定后提交)
 
+<img width="1716" height="1049" alt="image" src="https://github.com/user-attachments/assets/fa22d151-8455-4310-906d-a6f4583d7ae7" />
+
+
 如果你不习惯纯命令行操作，现在可以使用全新的 **Cloai Desktop** 桌面应用。它将 Claude Code 强大的文件处理和代码执行能力，包装进了一个还原官方 Web 体验的图形化界面中。
 
 ### 核心特性
