@@ -842,6 +842,11 @@ cloai
 
 ### 2026 年 4 月 24 日更新
 - 发布 Cloai Desktop 0.0.1 预览版，采用 Tauri 2 + React 19 构建跨平台桌面应用；通过独立的本地 Bridge Server 实现 GUI 与底层引擎的通信和多格式代理转换。
+- 修复 session 级模型状态持久化链路：`/model` 切换后的模型现在会写入当前 session transcript，`--resume`、`/resume` 与 `--continue` 恢复时会优先恢复该 session 自己的模型，而不再被全局默认模型覆盖。
+- 修复 `/model` 菜单的当前状态判定：默认高亮与 `current` 标记现在统一以当前 session 实际生效的模型为准，不再错误回退到全局 active provider 的模型。
+- 修复 `/add-model` 与 `/remove-model` 只更新旧版顶层 `savedModels` 的问题；现在会同步更新当前 provider 的 `providers[].models`，新增模型可以立即出现在 `/model` 列表中。
+- 修复 `/login` 与首次配置自定义 API 时若干输入页 `Esc` 无效的问题；现在在自定义 provider 配置页和 OAuth 手动粘贴链接页中，`Esc` 可以正常返回上一级。
+- 补强复杂任务下的重复工具调用保护：在串行工具执行模式下，模型重复发出同一批工具调用时也会被识别并中止，同时避免把恢复轮次误判为死循环。
 
 ### 2026 年 4 月 19 日更新
 
