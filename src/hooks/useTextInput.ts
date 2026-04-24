@@ -325,6 +325,10 @@ export function useTextInput({
     switch (true) {
       case key.escape:
         return () => {
+          if (cancelOnEscape) {
+            onCancel?.()
+            return cursor
+          }
           // Skip when a keybinding context (e.g. Autocomplete) owns escape.
           // useKeybindings can't shield us via stopImmediatePropagation —
           // BaseTextInput's useInput registers first (child effects fire

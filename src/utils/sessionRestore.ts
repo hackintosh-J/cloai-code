@@ -41,7 +41,10 @@ import { logForDebugging } from './debug.js'
 import type { FileHistorySnapshot } from './fileHistory.js'
 import { fileHistoryRestoreStateFromLog } from './fileHistory.js'
 import { createSystemMessage } from './messages.js'
-import { parseUserSpecifiedModel } from './model/model.js'
+import {
+  parseUserSpecifiedModel,
+  type ModelSetting,
+} from './model/model.js'
 import { getPlansDirectory } from './plans.js'
 import { setCwd } from './Shell.js'
 import {
@@ -283,6 +286,15 @@ export type ProcessedResume = {
   initialState: AppState
 }
 
+function resolveResumedSessionModel(
+  resultModel: string | null | undefined,
+): ModelSetting | undefined {
+  if (resultModel === undefined) {
+    return undefined
+  }
+  return resultModel === null ? null : parseUserSpecifiedModel(resultModel)
+}
+
 /**
  * Subset of the coordinator mode module API needed for session resume.
  */
@@ -312,6 +324,7 @@ type ResumeLoadResult = {
   prNumber?: number
   prUrl?: string
   prRepository?: string
+  model?: string | null
 }
 
 /**
@@ -510,6 +523,13 @@ export async function processResumedConversation(
       context.agentDefinitions,
     )
 
+  const resumedSessionModel = resolveResumedSessionModel(result.model)
+
+  // Restore session model if user didn't specify one
+  if (!getMainLoopModelOverride() && resumedSessionModel !== undefined) {
+    setMainLoopModelOverride(resumedSessionModel)
+  }
+
   // Persist the current mode so future resumes know what mode this session was in
   if (feature('COORDINATOR_MODE')) {
     saveMode(context.modeApi?.isCoordinatorMode() ? 'coordinator' : 'normal')
@@ -542,6 +562,10 @@ export async function processResumedConversation(
     restoredAgentDef: restoredAgent,
     initialState: {
       ...context.initialState,
+      ...(resumedSessionModel !== undefined
+        ? { mainLoopModel: resumedSessionModel }
+        : {}),
+      mainLoopModelForSession: null,
       ...(resumedAgentType && { agent: resumedAgentType }),
       ...(restoredAttribution && { attribution: restoredAttribution }),
       ...(standaloneAgentContext && { standaloneAgentContext }),

@@ -26,6 +26,7 @@ import {
 import { getDefaultMainLoopModelSetting, isOpus1mMergeEnabled, renderDefaultModelSetting } from '../../utils/model/model.js';
 import { isModelAllowed } from '../../utils/model/modelAllowlist.js';
 import { stripSignatureBlocks } from '../../utils/messages.js';
+import { saveSessionModel } from '../../utils/sessionStorage.js';
 
 function extractAccountName(baseURL: string | undefined, providerId: string): string {
   if (providerId === 'anthropic-like') {
@@ -74,7 +75,9 @@ function makeConfiguredOptionValue(
   return `${providerKind}::${providerId}::${baseURL ?? ''}::${authMode}::${model}`;
 }
 
-function getConfiguredModelOptions(): ConfiguredModelOption[] {
+function getConfiguredModelOptions(
+  currentSessionModel: string | null,
+): ConfiguredModelOption[] {
   const storage = readCustomApiStorage();
   const activeProviderId = storage.activeProvider ?? storage.providerId;
   const providers = storage.providers ?? [];
@@ -120,13 +123,30 @@ function getConfiguredModelOptions(): ConfiguredModelOption[] {
       authMode: provider.authMode,
       reasoning: provider.reasoning,
       isCurrent:
-        provider.kind === storage.providerKind &&
-        provider.id === activeProviderId &&
-        (provider.baseURL ?? undefined) === (storage.baseURL ?? undefined) &&
-        provider.authMode === (storage.activeAuthMode ?? storage.authMode) &&
-        model === storage.activeModel,
+        currentSessionModel !== null
+          ? model === currentSessionModel
+          : (
+              provider.kind === storage.providerKind &&
+              provider.id === activeProviderId &&
+              (provider.baseURL ?? undefined) === (storage.baseURL ?? undefined) &&
+              provider.authMode === (storage.activeAuthMode ?? storage.authMode) &&
+              model === storage.activeModel
+            ),
     }));
   });
+}
+
+function findConfiguredValueForSessionModel(
+  options: ConfiguredModelOption[],
+  model: string | null,
+): string | null {
+  if (model === null) {
+    return null
+  }
+  return (
+    options.find(option => option.model === model)?.value ??
+    null
+  )
 }
 
 function parseConfiguredOptionValue(value: string): {
@@ -276,8 +296,14 @@ function ModelPickerWrapper({
   const mainLoopModelForSession = useAppState(s => s.mainLoopModelForSession);
   const isFastMode = useAppState(s => s.fastMode);
   const setAppState = useSetAppState();
-  const configuredOptions = getConfiguredModelOptions();
-  const currentConfiguredValue = configuredOptions.find(option => option.isCurrent)?.value ?? mainLoopModel;
+  const configuredOptions = getConfiguredModelOptions(mainLoopModel);
+  const currentConfiguredValue =
+    findConfiguredValueForSessionModel(
+      configuredOptions,
+      mainLoopModel,
+    ) ??
+    configuredOptions.find(option => option.isCurrent)?.value ??
+    mainLoopModel;
 
   function handleCancel(): void {
     logEvent('tengu_model_command_menu', {
@@ -303,6 +329,7 @@ function ModelPickerWrapper({
       mainLoopModel: selectedModel,
       mainLoopModelForSession: null,
     }));
+    saveSessionModel(selectedModel);
     setMessages(filterMessagesAfterModelSwitch);
     let message = formatReasoningMessage(selectedModel, reasoning);
 
@@ -436,6 +463,7 @@ function SetModelAndClose({
         mainLoopModel: modelValue,
         mainLoopModelForSession: null
       }));
+      saveSessionModel(modelValue);
       setMessages(filterMessagesAfterModelSwitch);
       let message = `Set model to ${chalk.bold(renderModelLabel(modelValue))}`;
       let wasFastModeToggledOn = undefined;

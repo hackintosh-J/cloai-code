@@ -591,6 +591,7 @@ class Project {
   currentSessionPrNumber: number | undefined
   currentSessionPrUrl: string | undefined
   currentSessionPrRepository: string | undefined
+  currentSessionModel: string | null | undefined
 
   sessionFile: string | null = null
   // Entries buffered while sessionFile is null. Flushed by materializeSessionFile
@@ -880,6 +881,13 @@ class Project {
         prUrl: this.currentSessionPrUrl,
         prRepository: this.currentSessionPrRepository,
         timestamp: new Date().toISOString(),
+      })
+    }
+    if (this.currentSessionModel !== undefined) {
+      appendEntryToFile(this.sessionFile, {
+        type: 'session-model',
+        model: this.currentSessionModel,
+        sessionId,
       })
     }
   }
@@ -2812,6 +2820,7 @@ export function restoreSessionMetadata(meta: {
   prNumber?: number
   prUrl?: string
   prRepository?: string
+  model?: string | null
 }): void {
   const project = getProject()
   // ??= so --name (cacheSessionTitle) wins over the resumed
@@ -2822,6 +2831,7 @@ export function restoreSessionMetadata(meta: {
   if (meta.agentColor) project.currentSessionAgentColor = meta.agentColor
   if (meta.agentSetting) project.currentSessionAgentSetting = meta.agentSetting
   if (meta.mode) project.currentSessionMode = meta.mode
+  if (meta.model !== undefined) project.currentSessionModel = meta.model
   if (meta.worktreeSession !== undefined)
     project.currentSessionWorktree = meta.worktreeSession
   if (meta.prNumber !== undefined)
@@ -2848,6 +2858,7 @@ export function clearSessionMetadata(): void {
   project.currentSessionPrNumber = undefined
   project.currentSessionPrUrl = undefined
   project.currentSessionPrRepository = undefined
+  project.currentSessionModel = undefined
 }
 
 /**
@@ -2924,6 +2935,26 @@ export function cacheSessionTitle(customTitle: string): void {
  */
 export function saveMode(mode: 'coordinator' | 'normal'): void {
   getProject().currentSessionMode = mode
+}
+
+/**
+ * Save the model used in the current session. Written to disk by
+ * materializeSessionFile on the first user message, and re-stamped by
+ * reAppendSessionMetadata on exit. This allows sessions to remember which
+ * model was last used when resumed.
+ */
+export function saveSessionModel(model: string | null): void {
+  const project = getProject()
+  project.currentSessionModel = model
+  // Immediately persist to session file
+  project.reAppendSessionMetadata()
+}
+
+/**
+ * Get the model saved for the current session.
+ */
+export function getCurrentSessionModel(): string | null | undefined {
+  return getProject().currentSessionModel
 }
 
 /**
@@ -3017,6 +3048,7 @@ export async function loadFullLog(log: LogOption): Promise<LogOption> {
       prUrls,
       prRepositories,
       modes,
+      models,
       worktreeStates,
       fileHistorySnapshots,
       attributionSnapshots,
@@ -3060,6 +3092,7 @@ export async function loadFullLog(log: LogOption): Promise<LogOption> {
       agentColor: sessionId ? agentColors.get(sessionId) : log.agentColor,
       agentSetting: sessionId ? agentSettings.get(sessionId) : log.agentSetting,
       mode: sessionId ? (modes.get(sessionId) as LogOption['mode']) : log.mode,
+      model: sessionId ? models.get(sessionId) : log.model,
       worktreeSession:
         sessionId && worktreeStates.has(sessionId)
           ? worktreeStates.get(sessionId)
@@ -3530,6 +3563,7 @@ export async function loadTranscriptFile(
   prUrls: Map<UUID, string>
   prRepositories: Map<UUID, string>
   modes: Map<UUID, string>
+  models: Map<UUID, string | null>
   worktreeStates: Map<UUID, PersistedWorktreeSession | null>
   fileHistorySnapshots: Map<UUID, FileHistorySnapshotMessage>
   attributionSnapshots: Map<UUID, AttributionSnapshotMessage>
@@ -3550,6 +3584,7 @@ export async function loadTranscriptFile(
   const prUrls = new Map<UUID, string>()
   const prRepositories = new Map<UUID, string>()
   const modes = new Map<UUID, string>()
+  const models = new Map<UUID, string | null>()
   const worktreeStates = new Map<UUID, PersistedWorktreeSession | null>()
   const fileHistorySnapshots = new Map<UUID, FileHistorySnapshotMessage>()
   const attributionSnapshots = new Map<UUID, AttributionSnapshotMessage>()
@@ -3645,6 +3680,8 @@ export async function loadTranscriptFile(
           agentColors.set(entry.sessionId, entry.agentColor)
         } else if (entry.type === 'agent-setting' && entry.sessionId) {
           agentSettings.set(entry.sessionId, entry.agentSetting)
+        } else if (entry.type === 'session-model' && entry.sessionId) {
+          models.set(entry.sessionId, entry.model)
         } else if (entry.type === 'mode' && entry.sessionId) {
           modes.set(entry.sessionId, entry.mode)
         } else if (entry.type === 'worktree-state' && entry.sessionId) {
@@ -3713,6 +3750,8 @@ export async function loadTranscriptFile(
         agentColors.set(entry.sessionId, entry.agentColor)
       } else if (entry.type === 'agent-setting' && entry.sessionId) {
         agentSettings.set(entry.sessionId, entry.agentSetting)
+      } else if (entry.type === 'session-model' && entry.sessionId) {
+        models.set(entry.sessionId, entry.model)
       } else if (entry.type === 'mode' && entry.sessionId) {
         modes.set(entry.sessionId, entry.mode)
       } else if (entry.type === 'worktree-state' && entry.sessionId) {
@@ -3847,6 +3886,7 @@ export async function loadTranscriptFile(
     prUrls,
     prRepositories,
     modes,
+    models,
     worktreeStates,
     fileHistorySnapshots,
     attributionSnapshots,
@@ -3867,6 +3907,7 @@ async function loadSessionFile(sessionId: UUID): Promise<{
   customTitles: Map<UUID, string>
   tags: Map<UUID, string>
   agentSettings: Map<UUID, string>
+  models: Map<UUID, string | null>
   worktreeStates: Map<UUID, PersistedWorktreeSession | null>
   fileHistorySnapshots: Map<UUID, FileHistorySnapshotMessage>
   attributionSnapshots: Map<UUID, AttributionSnapshotMessage>
@@ -3922,6 +3963,7 @@ export async function getLastSessionLog(
     customTitles,
     tags,
     agentSettings,
+    models,
     worktreeStates,
     fileHistorySnapshots,
     attributionSnapshots,
@@ -3966,6 +4008,7 @@ export async function getLastSessionLog(
       agentSetting,
       contentReplacements.get(sessionId) ?? [],
     ),
+    model: models.get(sessionId),
     worktreeSession: worktreeStates.get(sessionId),
     contextCollapseCommits: contextCollapseCommits.filter(
       e => e.sessionId === sessionId,

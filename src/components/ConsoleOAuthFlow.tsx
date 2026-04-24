@@ -2036,6 +2036,7 @@ function OAuthStatusMessage({
               placeholder={placeholder}
               mask={oauthStatus.step === 'apiKey' ? '*' : undefined}
               dimColor={(oauthStatus.step === 'models' || isCopilotSetup) && value.length === 0}
+              cancelOnEscape
               onCancel={() => {
                 if (isCopilotSetup) {
                   setOAuthStatus({ state: 'provider_select' });
@@ -2224,6 +2225,8 @@ function OAuthStatusMessage({
                   onChangeCursorOffset={setCursorOffset}
                   columns={textInputColumns}
                   mask="*"
+                  cancelOnEscape
+                  onCancel={() => setOAuthStatus({ state: 'ready_to_start' })}
                 />
               </Box>
               <Text dimColor>

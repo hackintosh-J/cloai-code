@@ -476,6 +476,7 @@ export async function loadConversationForResume(
   prNumber?: number
   prUrl?: string
   prRepository?: string
+  model?: string | null
   // Full path to the session file (for cross-directory resume)
   fullPath?: string
 } | null> {
@@ -587,6 +588,7 @@ export async function loadConversationForResume(
       prNumber: log?.prNumber,
       prUrl: log?.prUrl,
       prRepository: log?.prRepository,
+      model: log?.model,
       // Include full path for cross-directory resume
       fullPath: log?.fullPath,
     }

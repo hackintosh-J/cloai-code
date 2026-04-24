@@ -5057,6 +5057,8 @@ async function loadInitialMessages(
           setAppState(externalMetadataToAppState(metadata))
           if (typeof metadata.model === 'string') {
             setMainLoopModelOverride(metadata.model)
+          } else if (metadata.model === null) {
+            setMainLoopModelOverride(null)
           }
         }
       } else if (

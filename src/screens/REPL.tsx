@@ -1830,6 +1830,14 @@ export function REPL({
 
       // Restore file history and attribution state from the resumed conversation
       restoreSessionStateFromLog(log, setAppState);
+      if (log.model !== undefined) {
+        const restoredModel = log.model === null ? null : log.model;
+        setAppState(prev => ({
+          ...prev,
+          mainLoopModel: restoredModel,
+          mainLoopModelForSession: null
+        }));
+      }
       if (log.fileHistorySnapshots) {
         void copyFileHistoryForResume(log);
       }

@@ -48,6 +48,7 @@ export type LogOption = {
   prUrl?: string // Full URL to the linked PR
   prRepository?: string // Repository in "owner/repo" format
   mode?: 'coordinator' | 'normal' // Session mode for coordinator/normal detection
+  model?: string | null // Model used in this session
   worktreeSession?: PersistedWorktreeSession | null // Worktree state at session end (null = exited, undefined = never entered)
   contentReplacements?: ContentReplacementRecord[] // Replacement decisions for resume reconstruction
 }
@@ -138,6 +139,16 @@ export type ModeEntry = {
   type: 'mode'
   sessionId: UUID
   mode: 'coordinator' | 'normal'
+}
+
+/**
+ * Session model entry stored in session transcript.
+ * Records the model used in this session for restoration on resume.
+ */
+export type SessionModelMessage = {
+  type: 'session-model'
+  sessionId: UUID
+  model: string | null
 }
 
 /**
@@ -311,6 +322,7 @@ export type Entry =
   | QueueOperationMessage
   | SpeculationAcceptMessage
   | ModeEntry
+  | SessionModelMessage
   | WorktreeStateEntry
   | ContentReplacementEntry
   | ContextCollapseCommitEntry
