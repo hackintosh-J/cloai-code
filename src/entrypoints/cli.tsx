@@ -91,6 +91,14 @@ async function main(): Promise<void> {
     await runComputerUseMcpServer();
     return;
   }
+  if (process.argv[2] === '--desktop-generate-title') {
+    profileCheckpoint('cli_desktop_generate_title_path');
+    const {
+      runDesktopTitleGeneration
+    } = await import('../services/desktopRuntime/titleGeneration.js');
+    await runDesktopTitleGeneration();
+    return;
+  }
 
   // Fast-path for `--daemon-worker=<kind>` (internal — supervisor spawns this).
   // Must come before the daemon subcommand check: spawned per-worker, so

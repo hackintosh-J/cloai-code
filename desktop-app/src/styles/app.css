@@ -1,0 +1,1207 @@
+/* === Local Font Imports (must come first - CSS spec requirement) === */
+@import '@fontsource-variable/figtree';
+@import '@fontsource-variable/source-serif-4';
+@import '@fontsource/spectral/400.css';
+@import '@fontsource/spectral/500.css';
+@import '@fontsource/spectral/600.css';
+@import '@fontsource/spectral/700.css';
+@import '@fontsource/spectral/800.css';
+@import '@fontsource/spectral/400-italic.css';
+
+/* === Enhanced Animations === */
+@import './enhanced-animations.css';
+
+/* === Tailwind CSS Directives === */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* === CSS Variables (Theme) === */
+:root {
+  --bg-claude-main: #F8F8F6;
+  --bg-claude-sidebar: #F7F7F4;
+  --border-claude: #E8E7E3;
+  --text-claude-main: #2a2a2a;
+  --text-claude-model-body: #2a2a2a;
+  --text-claude-secondary: #666666;
+  --bg-claude-accent: #CC7C5E;
+  --bg-claude-hover: #EFEEEB;
+  --bg-claude-btn-hover: #EAE9E6;
+  --bg-claude-input: #FFFFFF;
+  --bg-claude-avatar: #333333;
+  --text-claude-avatar: #FFFFFF;
+  --bg-mode-tabs: #EFEEEB;
+  --bg-mode-tab-active: #F8F8F6;
+}
+
+.dark {
+  --bg-claude-main: #1F1F1E;
+  --bg-claude-sidebar: #1E1E1C;
+  --border-claude: #444341;
+  --text-claude-main: #FFFFFF;
+  --text-claude-model-body: #EDEAE1;
+  --text-claude-secondary: #ABA499;
+  --bg-claude-accent: #CC7C5E;
+  --bg-claude-hover: #121212;
+  --bg-claude-btn-hover: #121212;
+  --bg-claude-input: #30302E;
+  --bg-claude-avatar: #D4D4D4;
+  --text-claude-avatar: #222222;
+  --bg-mode-tabs: #121212;
+  --bg-mode-tab-active: #1F1F1E;
+  color-scheme: dark;
+}
+
+/* === Base Styles === */
+body {
+  font-family: 'Figtree', sans-serif;
+  background-color: var(--bg-claude-main);
+  color: var(--text-claude-main);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Global transition for theme changes */
+body,
+div,
+span,
+applet,
+object,
+iframe,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p,
+blockquote,
+pre,
+a,
+abbr,
+acronym,
+address,
+big,
+cite,
+code,
+del,
+dfn,
+em,
+img,
+ins,
+kbd,
+q,
+s,
+samp,
+small,
+strike,
+strong,
+sub,
+sup,
+tt,
+var,
+b,
+u,
+i,
+center,
+dl,
+dt,
+dd,
+ol,
+ul,
+li,
+fieldset,
+form,
+label,
+legend,
+table,
+caption,
+tbody,
+tfoot,
+thead,
+tr,
+th,
+td,
+article,
+aside,
+canvas,
+details,
+embed,
+figure,
+figcaption,
+footer,
+header,
+hgroup,
+menu,
+nav,
+output,
+ruby,
+section,
+summary,
+time,
+mark,
+audio,
+video,
+button,
+input,
+textarea {
+  transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease, fill 0.3s ease, stroke 0.3s ease;
+}
+
+.font-serif-claude {
+  font-family: 'Source Serif 4', serif;
+}
+
+.directory-title-anthropic {
+  font-family: 'Anthropic Serif', 'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', Georgia, serif;
+  font-size: 24px;
+  font-style: normal;
+  font-weight: 500;
+  line-height: 32px;
+}
+
+/* === Sidebar Scrollbar === */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: var(--text-claude-secondary);
+  opacity: 0.5;
+}
+
+.sidebar-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-claude-main);
+  opacity: 0.7;
+}
+
+html.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background-color: transparent !important;
+}
+
+html.dark .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+  background-color: #4A4A4A !important;
+  opacity: 0.8;
+}
+
+html.dark .sidebar-scroll:hover::-webkit-scrollbar-thumb:hover {
+  background-color: #5A5A5A !important;
+  opacity: 1;
+}
+
+/* === Markdown Styles === */
+.markdown-body p {
+  margin-bottom: 0.6em;
+  line-height: 1.5;
+  color: var(--text-claude-main);
+}
+
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3,
+.markdown-body h4,
+.markdown-body h5,
+.markdown-body h6 {
+  margin-top: 1.0em;
+  margin-bottom: 0.4em;
+  font-weight: 600;
+  color: var(--text-claude-main);
+}
+
+.markdown-body ul,
+.markdown-body ol {
+  margin-bottom: 0.6em;
+  padding-left: 1.5em;
+  list-style-type: disc;
+  color: var(--text-claude-main);
+}
+
+.markdown-body pre {
+  background-color: var(--bg-claude-input);
+  padding: 1em;
+  border-radius: 8px;
+  overflow-x: auto;
+  margin-bottom: 0.6em;
+  font-family: monospace;
+  border: 1px solid var(--border-claude);
+}
+
+.markdown-body code {
+  background-color: var(--bg-claude-hover);
+  padding: 0.2em 0.4em;
+  border-radius: 4px;
+  font-size: 0.9em;
+  color: var(--text-claude-main);
+}
+
+.markdown-body pre code {
+  background-color: transparent;
+  padding: 0;
+  color: inherit;
+}
+
+.assistant-markdown {
+  color: var(--text-claude-model-body);
+}
+
+.assistant-markdown p,
+.assistant-markdown h1,
+.assistant-markdown h2,
+.assistant-markdown h3,
+.assistant-markdown h4,
+.assistant-markdown h5,
+.assistant-markdown h6,
+.assistant-markdown ul,
+.assistant-markdown ol,
+.assistant-markdown li,
+.assistant-markdown blockquote,
+.assistant-markdown strong,
+.assistant-markdown em,
+.assistant-markdown .katex-display>.katex {
+  color: var(--text-claude-model-body);
+}
+
+/* Standard inline code */
+.inline-code {
+  background-color: rgba(0, 0, 0, 0.05) !important;
+  border-color: rgb(208, 207, 204) !important;
+  color: rgb(132, 33, 35) !important;
+}
+
+html.dark .inline-code {
+  background-color: rgb(46, 46, 43) !important;
+  border-color: rgb(56, 55, 52) !important;
+  color: rgb(234, 134, 130) !important;
+}
+
+/* Sidebar dark mode overrides */
+html.dark .bg-claude-sidebar {
+  color: rgb(190, 189, 180) !important;
+}
+
+html.dark .bg-claude-sidebar button {
+  color: rgb(190, 189, 180);
+}
+
+html.dark .bg-claude-sidebar .text-claude-text {
+  color: rgb(190, 189, 180) !important;
+}
+
+html.dark .bg-claude-sidebar button:hover,
+html.dark .bg-claude-sidebar button:hover .text-claude-text,
+html.dark .bg-claude-sidebar .group:hover .text-claude-text {
+  color: #FFFFFF !important;
+}
+
+/* KaTeX display math */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  max-width: 100%;
+  text-align: center;
+}
+
+.katex-display>.katex {
+  white-space: normal !important;
+  color: var(--text-claude-main);
+}
+
+.katex-display>.katex>.katex-html {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 2px 0;
+}
+
+/* === Global Scrollbar — WebKit === */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.4);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #555555 !important;
+  border: 1px solid #333333 !important;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #777777 !important;
+}
+
+/* Standard Scrollbar (Firefox) */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
+}
+
+html.dark * {
+  scrollbar-color: #424242 transparent;
+}
+
+/* === Animations === */
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-in {
+  animation: slideInUp 0.15s ease-out forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-in-out forwards;
+}
+
+@keyframes compactProgress {
+  0% {
+    width: 0%;
+  }
+
+  50% {
+    width: 80%;
+  }
+
+  100% {
+    width: 100%;
+  }
+}
+
+/* === Chat Scrollbar === */
+.chat-scroll::-webkit-scrollbar {
+  width: 14px !important;
+}
+
+.chat-scroll::-webkit-scrollbar-track {
+  background: transparent !important;
+  background-image: none !important;
+}
+
+.chat-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--bg-claude-btn-hover) !important;
+  border-radius: 6px !important;
+  border: 4px solid transparent !important;
+  background-clip: content-box !important;
+}
+
+.chat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--text-claude-secondary) !important;
+}
+
+html.dark .chat-scroll::-webkit-scrollbar-thumb {
+  background-color: #555555 !important;
+  border: 2px solid transparent !important;
+  background-clip: content-box !important;
+}
+
+html.dark .chat-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #777777 !important;
+}
+
+/* === Chat Font Settings === */
+
+/* Default - Serif (Source Serif 4) */
+html[data-chat-font="default"] .chat-font-scope {
+  --chat-font-family: 'Source Serif 4', 'Iowan Old Style', 'Palatino Linotype', 'Book Antiqua', 'Noto Serif SC', 'Source Han Serif SC', 'Songti SC', STSong, Georgia, ui-serif, serif;
+  font-family: var(--chat-font-family);
+  font-weight: 430;
+  font-synthesis-weight: none;
+}
+
+/* Sans */
+html[data-chat-font="sans"] .chat-font-scope {
+  --chat-font-family: 'Figtree', Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-family: var(--chat-font-family);
+}
+
+/* System */
+html[data-chat-font="system"] .chat-font-scope {
+  --chat-font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  font-family: var(--chat-font-family);
+}
+
+/* Dyslexic Friendly */
+html[data-chat-font="dyslexic"] .chat-font-scope {
+  --chat-font-family: 'Comic Sans MS', 'Chalkboard SE', sans-serif;
+  font-family: var(--chat-font-family);
+  line-height: 1.6;
+}
+
+/* Ensure chat content inherits the selected font */
+html[data-chat-font] .chat-font-scope,
+html[data-chat-font] .chat-font-scope .markdown-body,
+html[data-chat-font] .chat-font-scope .markdown-body :where(p, h1, h2, h3, h4, h5, h6, ul, ol, li, blockquote, table, thead, tbody, tr, th, td, a, span, strong, em) {
+  font-family: var(--chat-font-family, inherit);
+}
+
+html[data-chat-font] .chat-font-scope textarea,
+html[data-chat-font] .chat-font-scope input,
+html[data-chat-font] .chat-font-scope .markdown-body {
+  font-family: inherit;
+}
+
+/* ─── Cowork page ─── */
+.cowork-page-bg {
+  background-color: #F8F8F6;
+  background-image: radial-gradient(circle, #d9d7d0 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center center;
+}
+
+.dark .cowork-page-bg {
+  background-color: #191919;
+  background-image: radial-gradient(circle, #2a2a28 1px, transparent 1px);
+  background-size: 24px 24px;
+  background-position: center center;
+}
+
+.cowork-selector-icon {
+  filter: brightness(0) saturate(100%) invert(29%) sepia(8%) saturate(629%) hue-rotate(357deg) brightness(95%) contrast(88%);
+}
+
+.dark .cowork-selector-icon {
+  filter: brightness(0) saturate(100%) invert(84%) sepia(6%) saturate(629%) hue-rotate(357deg) brightness(95%) contrast(88%);
+}
+
+/* ─── Page Transition Animations ─── */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+.page-transition-enter {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.page-transition-exit {
+  animation: fadeOut 0.2s ease-in forwards;
+}
+
+/* Mode-specific page animations */
+.chat-page-enter,
+.cowork-page-enter,
+.code-page-enter {
+  animation: fadeIn 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Smooth mode tab transitions */
+.mode-tabs-container {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ─── Unified Design System ─── */
+/* Consistent button hover states */
+button:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* Consistent focus states */
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* Smooth transitions for interactive elements */
+button,
+a,
+.interactive {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Consistent shadow elevations */
+.shadow-sm-elevated {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.shadow-md-elevated {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.shadow-lg-elevated {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Consistent border radius scale */
+.rounded-sm-custom {
+  border-radius: 8px;
+}
+
+.rounded-md-custom {
+  border-radius: 12px;
+}
+
+.rounded-lg-custom {
+  border-radius: 16px;
+}
+
+.rounded-xl-custom {
+  border-radius: 20px;
+}
+
+/* Typography scale consistency */
+.text-display {
+  font-family: "Anthropic Serif", "Source Serif 4", "Iowan Old Style", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+}
+
+.text-body {
+  font-family: "Anthropic Sans", "Figtree", sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* Consistent spacing scale (already in Tailwind, but documented here) */
+/* 4px, 8px, 12px, 16px, 20px, 24px, 32px, 40px, 48px, 64px */
+
+/* ─── Scheduled page ─── */
+.scheduled-page {
+  background-color: #fefefe;
+}
+
+.scheduled-shell {
+  margin: 0 auto;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 1230px;
+  padding: 34px 24px 56px;
+}
+
+.scheduled-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  width: min(1182px, 100%);
+  margin: 0 auto;
+}
+
+.scheduled-heading {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.scheduled-title {
+  margin: 0;
+  color: #5d5d5d;
+  font-family: 'Times New Roman', 'Source Serif 4', serif;
+  font-size: 37px;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  line-height: 1.04;
+}
+
+.scheduled-subtitle {
+  margin: 8px 0 0;
+  max-width: 940px;
+  color: #b0b0b0;
+  font-family: 'Inter', 'Anthropic Sans', 'Figtree', sans-serif;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.45;
+}
+
+.scheduled-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+
+.scheduled-icon-button {
+  display: inline-flex;
+  height: 28px;
+  width: 28px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  padding: 0;
+  transition: background-color 0.18s ease, opacity 0.18s ease;
+}
+
+.scheduled-icon-button:hover {
+  background-color: rgba(0, 0, 0, 0.045);
+}
+
+.scheduled-icon-button:focus-visible {
+  outline: 2px solid rgba(17, 17, 17, 0.25);
+  outline-offset: 2px;
+}
+
+.scheduled-new-task-button {
+  min-width: 109px;
+  height: 46px;
+  border-radius: 8.25px;
+  border: 1px solid #8c8c8c;
+  background: #111111;
+  color: #939393;
+  font-family: 'Inter', 'Anthropic Sans', 'Figtree', sans-serif;
+  font-size: 17px;
+  font-style: normal;
+  font-weight: 700;
+  line-height: normal;
+  padding: 0 18px;
+  transition: filter 0.18s ease, transform 0.18s ease;
+}
+
+.scheduled-new-task-button:hover {
+  filter: brightness(1.05);
+}
+
+.scheduled-new-task-button:active {
+  transform: translateY(1px);
+}
+
+.scheduled-new-task-button:focus-visible {
+  outline: 2px solid rgba(17, 17, 17, 0.25);
+  outline-offset: 2px;
+}
+
+.scheduled-notice-card {
+  margin-top: 28px;
+  width: min(1182px, 100%);
+  min-height: 87px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  border-radius: 15px;
+  border: 1px solid #c5c5c1;
+  background: #f3f4ef;
+  padding: 14px 18px 14px 19px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.scheduled-notice-copy,
+.scheduled-notice-actions {
+  display: flex;
+  align-items: center;
+}
+
+.scheduled-notice-copy {
+  gap: 14px;
+  min-width: 0;
+}
+
+.scheduled-notice-actions {
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.scheduled-notice-copy span,
+.scheduled-notice-actions span {
+  color: #73746f;
+  font-family: 'Inter', 'Anthropic Sans', 'Figtree', sans-serif;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+.scheduled-notice-actions span {
+  color: #7e7f7a;
+}
+
+.scheduled-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 96px;
+}
+
+.scheduled-empty-icon {
+  display: block;
+}
+
+.scheduled-empty-copy {
+  margin: 24px 0 0;
+  color: #acacac;
+  font-family: 'Inter', 'Anthropic Sans', 'Figtree', sans-serif;
+  font-size: 19px;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+}
+
+html.dark .scheduled-page {
+  background-color: #171717;
+}
+
+html.dark .scheduled-title {
+  color: #d3cec6;
+}
+
+html.dark .scheduled-subtitle,
+html.dark .scheduled-empty-copy {
+  color: #87837d;
+}
+
+html.dark .scheduled-icon-button:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+html.dark .scheduled-icon-button:focus-visible,
+html.dark .scheduled-new-task-button:focus-visible {
+  outline-color: rgba(255, 255, 255, 0.25);
+}
+
+html.dark .scheduled-new-task-button {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: #f4f1eb;
+  color: #252422;
+}
+
+html.dark .scheduled-notice-card {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: #232321;
+}
+
+html.dark .scheduled-notice-copy span,
+html.dark .scheduled-notice-actions span {
+  color: #c0bdb7;
+}
+
+@media (max-width: 920px) {
+  .scheduled-header {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .scheduled-toolbar {
+    padding-top: 0;
+  }
+
+  .scheduled-notice-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .scheduled-shell {
+    padding: 32px 16px 40px;
+  }
+
+  .scheduled-title {
+    font-size: 31px;
+  }
+
+  .scheduled-subtitle,
+  .scheduled-notice-copy span,
+  .scheduled-notice-actions span,
+  .scheduled-empty-copy {
+    font-size: 16px;
+  }
+
+  .scheduled-toolbar {
+    gap: 12px;
+  }
+
+  .scheduled-new-task-button {
+    min-width: 100px;
+    height: 42px;
+    font-size: 15px;
+  }
+
+  .scheduled-empty-state {
+    margin-top: 84px;
+  }
+}
+
+/* === Cowork Page Backdrop ===
+ * Three-layer warm dark backdrop that mimics the Anthropic brand reference:
+ *   1. base warm-black fill
+ *   2. radial warm glow biased to upper-right (where the heading sits)
+ *   3. subtle dot grid masked from center → edges
+ * Only active in dark mode. Light mode falls back to the default chat bg.
+ */
+/* ─── Cowork page background ─── */
+.cowork-bg {
+  background-color: #F8F8F6;
+  position: relative;
+  isolation: isolate;
+  --cowork-wave-band-a: rgba(19, 19, 19, 0.12);
+  --cowork-wave-band-b: rgba(19, 19, 19, 0.08);
+  --cowork-wave-band-c: rgba(19, 19, 19, 0.06);
+  --cowork-wave-opacity: 0.22;
+  --cowork-wave-blend: multiply;
+}
+
+/* Light mode dot-grid overlay */
+.cowork-bg::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image: radial-gradient(circle, #D5D3CE 1px, transparent 1px);
+  background-size: 24px 24px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 60% 55% at 50% 30%,
+    #000 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    transparent 75%
+  );
+  mask-image: radial-gradient(
+    ellipse 60% 55% at 50% 30%,
+    #000 0%,
+    rgba(0, 0, 0, 0.3) 50%,
+    transparent 75%
+  );
+}
+
+.cowork-bg::after {
+  content: "";
+  position: absolute;
+  inset: -8% -4%;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    radial-gradient(58% 20% at 18% 26%, var(--cowork-wave-band-a) 0%, transparent 72%),
+    radial-gradient(54% 18% at 76% 44%, var(--cowork-wave-band-b) 0%, transparent 74%),
+    radial-gradient(46% 16% at 38% 74%, var(--cowork-wave-band-c) 0%, transparent 76%);
+  background-size: 100% 100%, 100% 100%, 100% 100%;
+  background-repeat: no-repeat, no-repeat, no-repeat;
+  opacity: var(--cowork-wave-opacity);
+  mix-blend-mode: var(--cowork-wave-blend);
+  filter: blur(10px);
+  -webkit-mask-image: radial-gradient(
+    ellipse 66% 58% at 50% 34%,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.55) 48%,
+    transparent 82%
+  );
+  mask-image: radial-gradient(
+    ellipse 66% 58% at 50% 34%,
+    rgba(0, 0, 0, 0.95) 0%,
+    rgba(0, 0, 0, 0.55) 48%,
+    transparent 82%
+  );
+  animation: coworkDotWave 11.5s cubic-bezier(0.37, 0, 0.16, 1) infinite;
+  will-change: transform, opacity, background-position;
+}
+
+html.dark .cowork-bg {
+  background-color: #191919;
+  --cowork-wave-band-a: rgba(255, 255, 255, 0.11);
+  --cowork-wave-band-b: rgba(255, 255, 255, 0.08);
+  --cowork-wave-band-c: rgba(255, 255, 255, 0.06);
+  --cowork-wave-opacity: 0.14;
+  --cowork-wave-blend: screen;
+}
+
+html.dark .cowork-bg::before {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: radial-gradient(
+    ellipse 70% 65% at 50% 35%,
+    #000 0%,
+    rgba(0, 0, 0, 0.35) 50%,
+    transparent 80%
+  );
+  mask-image: radial-gradient(
+    ellipse 70% 65% at 50% 35%,
+    #000 0%,
+    rgba(0, 0, 0, 0.35) 50%,
+    transparent 80%
+  );
+}
+
+.cowork-bg > * {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes coworkDotWave {
+  0% {
+    transform: translate3d(-2%, -1%, 0) scale(1.01);
+    background-position:
+      0% 0%,
+      0% 0%,
+      0% 0%;
+    opacity: calc(var(--cowork-wave-opacity) * 0.72);
+  }
+
+  28% {
+    transform: translate3d(1.75%, 0.5%, 0) scale(1.022);
+    background-position:
+      -3% 1%,
+      2% 2%,
+      -1% 4%;
+    opacity: var(--cowork-wave-opacity);
+  }
+
+  58% {
+    transform: translate3d(-1.25%, 1.8%, 0) scale(1.015);
+    background-position:
+      2% 3%,
+      -3% 2%,
+      3% -2%;
+    opacity: calc(var(--cowork-wave-opacity) * 0.82);
+  }
+
+  100% {
+    transform: translate3d(2.25%, -0.75%, 0) scale(1.028);
+    background-position:
+      -2% 0%,
+      1% -3%,
+      4% 3%;
+    opacity: calc(var(--cowork-wave-opacity) * 0.9);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cowork-bg::after {
+    animation: none;
+    transform: none;
+  }
+}
+
+/* ─── Hero title (Inter Semi Bold) ─── */
+.cowork-title {
+  font-family: 'Inter', 'Figtree', sans-serif;
+  font-size: 36px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+  color: #313131;
+}
+html.dark .cowork-title {
+  color: #D6CEC3;
+}
+
+/* Subtitle link */
+.cowork-subtitle-link {
+  font-size: 14px;
+  color: #979591;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+}
+.cowork-subtitle-link:hover {
+  color: #5E5E5E;
+}
+html.dark .cowork-subtitle-link {
+  color: #A3A19E;
+}
+html.dark .cowork-subtitle-link:hover {
+  color: #D6CEC3;
+}
+
+/* ─── Composer base ─── */
+.cowork-composer-base {
+  background-color: #F7F7F6;
+  border-color: #E8E7E3;
+}
+html.dark .cowork-composer-base {
+  background-color: #1E1E1C;
+  border-color: rgba(255, 255, 255, 0.10);
+}
+
+/* Inner card */
+.cowork-composer-inner {
+  background-color: #FFFFFF;
+  border: 1px solid #C7C7C7;
+}
+html.dark .cowork-composer-inner {
+  background-color: #2A2A28;
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* Composer (kept for backward compat) */
+.cowork-composer {
+  background-color: var(--bg-claude-input);
+}
+html.dark .cowork-composer {
+  background-color: #2A2A28;
+}
+
+/* ─── Bottom selector buttons ─── */
+.cowork-selector-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 13px;
+  color: #61615F;
+  transition: color 0.15s, background-color 0.15s;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.cowork-selector-btn:hover {
+  background-color: rgba(0,0,0,0.04);
+  color: #313131;
+}
+html.dark .cowork-selector-btn {
+  color: #A3A19E;
+}
+html.dark .cowork-selector-btn:hover {
+  background-color: rgba(255,255,255,0.06);
+  color: #D6CEC3;
+}
+
+/* Selector icon color adaptation */
+.cowork-selector-icon {
+  opacity: 0.7;
+}
+html.dark .cowork-selector-icon {
+  filter: invert(1);
+  opacity: 0.6;
+}
+
+/* ─── Send button ─── */
+.cowork-send {
+  background-color: #BF6A4A;
+  color: #F5E6DD;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+html.dark .cowork-send {
+  background-color: #B8654A;
+}
+.cowork-send:hover:not(:disabled) {
+  filter: brightness(1.08);
+}
+
+/* ─── "Get to know Cowork" section ─── */
+.cowork-section-title {
+  font-size: 16px;
+  font-weight: 500;
+  color: #A19F9C;
+}
+html.dark .cowork-section-title {
+  color: #A3A19E;
+}
+
+/* Checklist circle */
+.cowork-check-circle {
+  border: 1.5px solid #D1C9BA;
+  background: transparent;
+}
+.cowork-check-circle.completed {
+  background-color: #D1C9BA;
+  color: #FFFFFF;
+}
+html.dark .cowork-check-circle {
+  border-color: #5A5854;
+}
+html.dark .cowork-check-circle.completed {
+  background-color: #5A5854;
+  color: #D6CEC3;
+}
+
+/* Checklist text */
+.cowork-check-title {
+  color: #313131;
+}
+.cowork-check-title-done {
+  color: #A3A19E;
+}
+html.dark .cowork-check-title {
+  color: #D6CEC3;
+}
+html.dark .cowork-check-title-done {
+  color: #7A7873;
+}
+
+.cowork-check-subtitle {
+  color: #A3A19E;
+}
+html.dark .cowork-check-subtitle {
+  color: #7A7873;
+}
+
+/* Divider between checklist items */
+.cowork-checklist-divider {
+  border-bottom: 1px solid #E8E7E3;
+}
+html.dark .cowork-checklist-divider {
+  border-bottom-color: rgba(255, 255, 255, 0.06);
+}
+
+/* ─── Card (guest pass etc.) ─── */
+.cowork-card {
+  background-color: var(--bg-claude-input);
+  border-color: var(--border-claude);
+}
+html.dark .cowork-card {
+  background-color: #2A2A28;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+html.dark .cowork-card:hover {
+  background-color: #333331;
+}
+
+/* ─── Textarea auto-grow ─── */
+.cowork-textarea {
+  field-sizing: content;
+  max-height: 220px;
+  overflow-y: auto;
+}

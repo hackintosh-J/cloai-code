@@ -1,0 +1,12 @@
+<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#56514A" style="display:block">
+  <style>@media (prefers-color-scheme: dark) { svg { color: #E8E0D4; } }</style>
+  <circle cx="12" cy="12" r="3" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.55"/>
+  <path d="M12 4.75V6.25" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M12 17.75V19.25" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M4.75 12H6.25" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M17.75 12H19.25" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M6.85 6.85L7.95 7.95" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M16.05 16.05L17.15 17.15" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M17.15 6.85L16.05 7.95" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <path d="M7.95 16.05L6.85 17.15" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+</svg>

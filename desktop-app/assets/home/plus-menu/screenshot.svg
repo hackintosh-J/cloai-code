@@ -1,0 +1,6 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect x="3" y="4.25" width="14" height="11.5" rx="2" fill="currentColor" opacity="0.12"/>
+<rect x="3" y="4.25" width="14" height="11.5" rx="2" stroke="currentColor" stroke-width="1.45"/>
+<path d="M6.25 7.25H8.25M11.75 7.25H13.75M6.25 12.75H8.25M11.75 12.75H13.75" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+<circle cx="10" cy="10" r="1.55" fill="currentColor"/>
+</svg>

@@ -1,0 +1,23 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-stories-sky desc-stories-sky">
+  <title id="title-stories-sky">Stories Sky</title>
+  <desc id="desc-stories-sky">Simplified preview illustration for Stories Sky.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <path d="M 67 112 C 91 86 112 80 130 93 C 150 68 176 60 202 81 V129 H67 Z" fill="#d8ebf7" stroke="#8bbbd8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 60 64 Q 86 54 112 64 V 129 Q 86 119 60 129 Z" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 112 64 Q 138 54 164 64 V 129 Q 138 119 112 129 Z" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 112 66 L 112 131" fill="none" stroke="#c7d2dc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="72" y="84" width="28" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="72" y="98" width="34" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="124" y="84" width="31" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="124" y="98" width="22" height="6" rx="3" fill="#f2bd65"/>
+<path d="M 177 40 L 179.8 45.2 L 185 48 L 179.8 50.8 L 177 56 L 174.2 50.8 L 169 48 L 174.2 45.2 Z" fill="#f2bd65"/>
+<path d="M 205 61 L 206.75 64.25 L 210 66 L 206.75 67.75 L 205 71 L 203.25 67.75 L 200 66 L 203.25 64.25 Z" fill="#ee7b73"/>
+<path d="M 157 68 L 158.75 71.25 L 162 73 L 158.75 74.75 L 157 78 L 155.25 74.75 L 152 73 L 155.25 71.25 Z" fill="#68a7d8"/>
+<circle cx="215" cy="38" r="3" fill="#73b89c"/>
+<path d="M 88 47 C 112 31 147 31 171 49" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="206" cy="45" r="5" fill="#f7df9a"/>
+</svg>

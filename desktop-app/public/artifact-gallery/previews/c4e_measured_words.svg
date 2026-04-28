@@ -1,0 +1,24 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-measured-words desc-c4e-measured-words">
+  <title id="title-c4e-measured-words">Measured Words</title>
+  <desc id="desc-c4e-measured-words">Simplified preview illustration for Measured Words.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="54" y="43" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="66" y="57" width="32" height="6" rx="3" fill="#73b89c"/>
+<rect x="66" y="73" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="85" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="97" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="109" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="123" width="22" height="6" rx="3" fill="#e9eef3"/>
+<rect x="145" y="58" width="62" height="14" rx="5" fill="#e7f3ed"/>
+<rect x="145" y="80" width="48" height="14" rx="5" fill="#fff2cf"/>
+<rect x="145" y="102" width="70" height="14" rx="5" fill="#d8ebf7"/>
+<path d="M 145 126 L 208 126" fill="none" stroke="#5b6874" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 145 126 L 145 120" fill="none" stroke="#5b6874" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 177 126 L 177 120" fill="none" stroke="#5b6874" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 208 126 L 208 120" fill="none" stroke="#5b6874" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="176" y="123" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="8" font-weight="600" fill="#5b6874" text-anchor="middle">tone</text>
+</svg>

@@ -1,0 +1,6 @@
+<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#56514A" style="display:block">
+  <style>@media (prefers-color-scheme: dark) { svg { color: #E8E0D4; } }</style>
+  <rect x="4.5" y="7" width="10.25" height="10" rx="2" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.55"/>
+  <path d="M14.75 10.5L19.5 8V16L14.75 13.5V10.5Z" stroke="currentColor" stroke-width="1.55" stroke-linejoin="round"/>
+  <path d="M7.25 10H11.75" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+</svg>

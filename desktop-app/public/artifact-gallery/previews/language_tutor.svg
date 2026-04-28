@@ -1,0 +1,27 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-language-tutor desc-language-tutor">
+  <title id="title-language-tutor">Language Tutor</title>
+  <desc id="desc-language-tutor">Simplified preview illustration for Language Tutor.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <path d="M 60 53 H 118 Q 126 53 126 61 V 87 Q 126 95 118 95 H 76 L 64 107 V 95 H 60 Q 52 95 52 87 V 61 Q 52 53 60 53 Z" fill="#fff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="66" y="68" width="44" height="4" rx="2" fill="#ccd7df"/>
+<rect x="66" y="81" width="32" height="4" rx="2" fill="#ccd7df"/>
+<circle cx="108" cy="79" r="5" fill="#68a7d8"/>
+<text x="89" y="79" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="800" fill="#4f8eb8" text-anchor="middle">Hola</text>
+<path d="M 147 72 H 205 Q 213 72 213 80 V 106 Q 213 114 205 114 H 163 L 151 126 V 114 H 147 Q 139 114 139 106 V 80 Q 139 72 147 72 Z" fill="#fff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="153" y="87" width="44" height="4" rx="2" fill="#ccd7df"/>
+<rect x="153" y="100" width="32" height="4" rx="2" fill="#ccd7df"/>
+<circle cx="195" cy="98" r="5" fill="#73b89c"/>
+<text x="176" y="98" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="800" fill="#4b7461" text-anchor="middle">Hello</text>
+<path d="M 122 79 C 132 68 143 68 153 77" fill="none" stroke="#f2bd65" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"/>
+<path d="M 70 101 Q 96 91 122 101 V 166 Q 96 156 70 166 Z" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 122 101 Q 148 91 174 101 V 166 Q 148 156 122 166 Z" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 122 103 L 122 168" fill="none" stroke="#c7d2dc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="82" y="121" width="28" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="82" y="135" width="34" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="134" y="121" width="31" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="134" y="135" width="22" height="6" rx="3" fill="#ee7b73"/>
+</svg>

@@ -1,6 +1,6 @@
 {
   "name": "@cloai-code/cli",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "description": "Restored Claude Code source tree reconstructed from source maps.",
   "license": "SEE LICENSE IN LICENSE.md",
@@ -20,7 +20,11 @@
     "version": "bun run ./src/bootstrap-entry.ts --version",
     "dev:restore-check": "bun run ./src/dev-entry.ts",
     "vscode:check": "node ./packages/cloai-vscode/scripts/check.js",
-    "vscode:package": "npm --prefix ./packages/cloai-vscode run package"
+    "vscode:package": "npm --prefix ./packages/cloai-vscode run package",
+    "tauri:dev": "cd desktop-app && bun run tauri:dev",
+    "tauri:build": "cd desktop-app && bun run tauri:build",
+    "tauri:build:win": "cd desktop-app && bun run tauri:build:win",
+    "tauri:build:win:clean": "cd desktop-app && bun run tauri:build:win:clean"
   },
   "bin": {
     "cloai": "./src/bootstrap-entry.ts"

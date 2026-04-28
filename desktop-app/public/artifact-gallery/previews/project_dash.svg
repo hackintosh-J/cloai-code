@@ -1,0 +1,22 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-project-dash desc-project-dash">
+  <title id="title-project-dash">Project Dashboard</title>
+  <desc id="desc-project-dash">Simplified preview illustration for Project Dashboard.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="47" y="43" width="166" height="84" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="59" y="56" width="44" height="25" rx="6" fill="#d8ebf7"/>
+<rect x="115" y="56" width="36" height="25" rx="6" fill="#e7f3ed"/>
+<rect x="163" y="56" width="38" height="25" rx="6" fill="#fff2cf"/>
+<rect x="65" y="101" width="7" height="13" rx="2" fill="#68a7d8"/>
+<rect x="76" y="86" width="7" height="28" rx="2" fill="#68a7d8"/>
+<rect x="87" y="93" width="7" height="21" rx="2" fill="#68a7d8"/>
+<rect x="98" y="79" width="7" height="35" rx="2" fill="#68a7d8"/>
+<rect x="109" y="96" width="7" height="18" rx="2" fill="#68a7d8"/>
+<path d="M 126 118 C 144 92, 154 134, 172 106 S 204 98, 222 90" fill="none" stroke="#73b89c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="126" cy="118" r="4" fill="#fff" stroke="#73b89c" stroke-width="2"/>
+<circle cx="172" cy="106" r="4" fill="#fff" stroke="#73b89c" stroke-width="2"/>
+<circle cx="222" cy="90" r="4" fill="#fff" stroke="#73b89c" stroke-width="2"/>
+</svg>

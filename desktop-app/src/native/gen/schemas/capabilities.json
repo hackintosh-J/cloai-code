@@ -1,0 +1,1 @@
+{"default":{"identifier":"default","description":"Default capability for the main Cloai Desktop window.","local":true,"windows":["main"],"permissions":["core:default","dialog:allow-open","shell:allow-open"]}}

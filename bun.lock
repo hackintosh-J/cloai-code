@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@anthropic-ai/claude-code",
+      "name": "@cloai-code/cli",
       "dependencies": {
         "@alcalzone/ansi-tokenize": "*",
         "@ant/claude-for-chrome-mcp": "file:./shims/ant-claude-for-chrome-mcp",

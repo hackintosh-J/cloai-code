@@ -1,0 +1,19 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-color-contrast-checker desc-c4e-color-contrast-checker">
+  <title id="title-c4e-color-contrast-checker">Color Contrast Checker</title>
+  <desc id="desc-c4e-color-contrast-checker">Simplified preview illustration for Color Contrast Checker.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="59" y="47" width="55" height="67" rx="8" fill="#1f2a32"/>
+<rect x="114" y="47" width="55" height="67" rx="8" fill="#f4efe6"/>
+<rect x="169" y="47" width="32" height="67" rx="8" fill="#68a7d8"/>
+<text x="86" y="86" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#fff" text-anchor="middle">Aa</text>
+<text x="141" y="86" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="18" font-weight="800" fill="#1f2a32" text-anchor="middle">Aa</text>
+<circle cx="97" cy="118" r="8" fill="#73b89c"/>
+<path d="M 92 118 L 96 122 L 103 113" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="152" cy="118" r="8" fill="#73b89c"/>
+<path d="M 147 118 L 151 122 L 158 113" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 205 43 L 207.45 47.55 L 212 50 L 207.45 52.45 L 205 57 L 202.55 52.45 L 198 50 L 202.55 47.55 Z" fill="#f2bd65"/>
+</svg>

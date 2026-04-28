@@ -1,0 +1,32 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-join-dots desc-join-dots">
+  <title id="title-join-dots">Join Dots</title>
+  <desc id="desc-join-dots">Simplified preview illustration for Join Dots.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="69" cy="55" r="4" fill="#8ba0ae"/>
+<circle cx="97" cy="55" r="4" fill="#8ba0ae"/>
+<circle cx="125" cy="55" r="4" fill="#8ba0ae"/>
+<circle cx="153" cy="55" r="4" fill="#8ba0ae"/>
+<circle cx="181" cy="55" r="4" fill="#8ba0ae"/>
+<circle cx="69" cy="83" r="4" fill="#8ba0ae"/>
+<circle cx="97" cy="83" r="4" fill="#8ba0ae"/>
+<circle cx="125" cy="83" r="4" fill="#8ba0ae"/>
+<circle cx="153" cy="83" r="4" fill="#8ba0ae"/>
+<circle cx="181" cy="83" r="4" fill="#8ba0ae"/>
+<circle cx="69" cy="111" r="4" fill="#8ba0ae"/>
+<circle cx="97" cy="111" r="4" fill="#8ba0ae"/>
+<circle cx="125" cy="111" r="4" fill="#8ba0ae"/>
+<circle cx="153" cy="111" r="4" fill="#8ba0ae"/>
+<circle cx="181" cy="111" r="4" fill="#8ba0ae"/>
+<circle cx="69" cy="139" r="4" fill="#8ba0ae"/>
+<circle cx="97" cy="139" r="4" fill="#8ba0ae"/>
+<circle cx="125" cy="139" r="4" fill="#8ba0ae"/>
+<circle cx="153" cy="139" r="4" fill="#8ba0ae"/>
+<circle cx="181" cy="139" r="4" fill="#8ba0ae"/>
+<path d="M 69 55 L 97 83 L 125 55 L 153 83 L 181 55 L 181 111 L 153 83 L 125 111 L 97 83 L 69 111" fill="none" stroke="#68a7d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="69" cy="55" r="6" fill="#f2bd65"/>
+<circle cx="181" cy="111" r="6" fill="#73b89c"/>
+</svg>

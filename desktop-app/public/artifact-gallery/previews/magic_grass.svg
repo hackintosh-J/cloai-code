@@ -1,0 +1,15 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-magic-grass desc-magic-grass">
+  <title id="title-magic-grass">Magic Grass</title>
+  <desc id="desc-magic-grass">Simplified preview illustration for Magic Grass.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <path d="M 55 124 C 61 103 62 89 58 72 M 82 124 C 90 95 91 75 84 55 M 112 124 C 118 102 122 84 120 64 M 146 124 C 143 101 147 82 158 62 M 180 124 C 178 103 185 88 199 75" fill="none" stroke="#73b89c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 88 45 L 90.8 50.2 L 96 53 L 90.8 55.8 L 88 61 L 85.2 55.8 L 80 53 L 85.2 50.2 Z" fill="#f2bd65"/>
+<path d="M 160 53 L 162.45 57.55 L 167 60 L 162.45 62.45 L 160 67 L 157.55 62.45 L 153 60 L 157.55 57.55 Z" fill="#68a7d8"/>
+<path d="M 199 69 L 201.1 72.9 L 205 75 L 201.1 77.1 L 199 81 L 196.9 77.1 L 193 75 L 196.9 72.9 Z" fill="#ee7b73"/>
+<path d="M 44 126 H 216" fill="none" stroke="#7d9b6e" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="126" cy="49" r="4" fill="#f7df9a"/>
+</svg>

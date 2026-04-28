@@ -1,0 +1,17 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-team-activities desc-team-activities">
+  <title id="title-team-activities">Team Activities</title>
+  <desc id="desc-team-activities">Simplified preview illustration for Team Activities.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="74" cy="67" r="12" fill="#d8ebf7" stroke="#8bbbd8" stroke-width="1.5"/>
+<circle cx="130" cy="55" r="12" fill="#e7f3ed" stroke="#bddacb" stroke-width="1.5"/>
+<circle cx="186" cy="67" r="12" fill="#ffd7df" stroke="#ee9aad" stroke-width="1.5"/>
+<rect x="59" y="84" width="31" height="34" rx="8" fill="#d8ebf7" stroke="#8bbbd8" stroke-width="1.5"/>
+<rect x="115" y="72" width="31" height="46" rx="8" fill="#e7f3ed" stroke="#bddacb" stroke-width="1.5"/>
+<rect x="171" y="84" width="31" height="34" rx="8" fill="#ffd7df" stroke="#ee9aad" stroke-width="1.5"/>
+<path d="M 90 94 C 105 83 113 80 121 78 M 146 78 C 157 80 165 84 174 94" fill="none" stroke="#aab9c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 130 99 L 132.8 104.2 L 138 107 L 132.8 109.8 L 130 115 L 127.2 109.8 L 122 107 L 127.2 104.2 Z" fill="#f2bd65"/>
+</svg>

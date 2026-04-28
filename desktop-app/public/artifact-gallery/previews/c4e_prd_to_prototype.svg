@@ -1,0 +1,22 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-prd-to-prototype desc-c4e-prd-to-prototype">
+  <title id="title-c4e-prd-to-prototype">PRD to Prototype</title>
+  <desc id="desc-c4e-prd-to-prototype">Simplified preview illustration for PRD to Prototype.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="46" y="46" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="58" y="60" width="32" height="6" rx="3" fill="#68a7d8"/>
+<rect x="58" y="76" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="58" y="88" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="58" y="100" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="58" y="112" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="58" y="126" width="22" height="6" rx="3" fill="#e9eef3"/>
+<path d="M 126 83 H 145 M 138 75 L 146 83 L 138 91" fill="none" stroke="#73b89c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="158" y="48" width="54" height="74" rx="8" fill="#fff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="167" y="58" width="36" height="18" rx="5" fill="#d8ebf7"/>
+<rect x="167" y="84" width="22" height="10" rx="4" fill="#73b89c"/>
+<rect x="167" y="101" width="36" height="8" rx="4" fill="#c8d2dc"/>
+<circle cx="205" cy="45" r="7" fill="#f2bd65"/>
+</svg>

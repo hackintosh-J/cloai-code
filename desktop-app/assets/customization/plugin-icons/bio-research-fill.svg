@@ -1,0 +1,9 @@
+<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#56514A" style="display:block">
+  <style>@media (prefers-color-scheme: dark) { svg { color: #E8E0D4; } }</style>
+  <path d="M9 3.5H15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+  <path d="M10 3.75V8.35L5.9 16.25C4.85 18.27 6.31 20.7 8.59 20.7H15.41C17.69 20.7 19.15 18.27 18.1 16.25L14 8.35V3.75" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
+  <path d="M7.35 16.15H16.65L17.15 17.15C17.67 18.17 16.92 19.35 15.78 19.35H8.22C7.08 19.35 6.33 18.17 6.85 17.15L7.35 16.15Z" fill="currentColor" opacity="0.12"/>
+  <circle cx="10" cy="17.7" r="0.85" fill="currentColor"/>
+  <circle cx="13.75" cy="14.2" r="0.75" fill="currentColor"/>
+  <circle cx="12.1" cy="18.9" r="0.55" fill="currentColor"/>
+</svg>

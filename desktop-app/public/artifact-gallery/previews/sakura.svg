@@ -1,0 +1,18 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-sakura desc-sakura">
+  <title id="title-sakura">Sakura</title>
+  <desc id="desc-sakura">Simplified preview illustration for Sakura.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <path d="M 76 122 C 112 95 131 76 151 47" fill="none" stroke="#7d684d" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 115 88 C 145 86 165 79 189 60" fill="none" stroke="#7d684d" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 96 80 C 110 72 114 96 96 98 C 78 96 82 72 96 80 Z" fill="#f8c7d3" stroke="#ee9aad" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 122 66 C 136 58 140 82 122 84 C 104 82 108 58 122 66 Z" fill="#ffd7df" stroke="#ee9aad" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 151 41 C 165 33 169 57 151 59 C 133 57 137 33 151 41 Z" fill="#f8c7d3" stroke="#ee9aad" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 174 55 C 188 47 192 71 174 73 C 156 71 160 47 174 55 Z" fill="#ffd7df" stroke="#ee9aad" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 150 73 C 164 65 168 89 150 91 C 132 89 136 65 150 73 Z" fill="#f8c7d3" stroke="#ee9aad" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 194 46 C 208 38 212 62 194 64 C 176 62 180 38 194 46 Z" fill="#ffd7df" stroke="#ee9aad" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 54 128 H 209" fill="none" stroke="#7d9b6e" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

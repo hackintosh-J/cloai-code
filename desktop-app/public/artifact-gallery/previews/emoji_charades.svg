@@ -1,0 +1,22 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-emoji-charades desc-emoji-charades">
+  <title id="title-emoji-charades">Emoji Charades</title>
+  <desc id="desc-emoji-charades">Simplified preview illustration for Emoji Charades.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="83" cy="78" r="26" fill="#fff2cf" stroke="#e4cf8b" stroke-width="2"/>
+<circle cx="75" cy="72" r="3" fill="#3f4b55"/>
+<circle cx="91" cy="72" r="3" fill="#3f4b55"/>
+<path d="M 72 86 Q 83 96 94 86" fill="none" stroke="#3f4b55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="154" cy="78" r="26" fill="#ffd7df" stroke="#ee9aad" stroke-width="2"/>
+<circle cx="146" cy="72" r="3" fill="#3f4b55"/>
+<circle cx="162" cy="72" r="3" fill="#3f4b55"/>
+<path d="M 143 90 Q 154 83 165 90" fill="none" stroke="#3f4b55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 184 48 H 206 Q 214 48 214 56 V 66 Q 214 74 206 74 H 200 L 188 86 V 74 H 184 Q 176 74 176 66 V 56 Q 176 48 184 48 Z" fill="#fff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="190" y="63" width="8" height="4" rx="2" fill="#ccd7df"/>
+<rect x="190" y="76" width="-4" height="4" rx="2" fill="#ccd7df"/>
+<circle cx="196" cy="58" r="5" fill="#68a7d8"/>
+<text x="195" y="68" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="15" font-weight="800" fill="#68a7d8" text-anchor="middle">?</text>
+</svg>

@@ -1,0 +1,24 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-ai-rhyming-clock desc-ai-rhyming-clock">
+  <title id="title-ai-rhyming-clock">AI Rhyming Clock</title>
+  <desc id="desc-ai-rhyming-clock">Simplified preview illustration for AI Rhyming Clock.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="101" cy="82" r="42" fill="#fff" stroke="#dbe3ea" stroke-width="2"/>
+<circle cx="101" cy="82" r="4" fill="#3f4b55"/>
+<path d="M 101 82 V 58 M 101 82 L 121 94" fill="none" stroke="#3f4b55" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="151" cy="61" r="18" fill="#68a7d8"/>
+<text x="151" y="66" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="800" fill="#fff" text-anchor="middle">AI</text>
+<path d="M 138 92 H 186 Q 194 92 194 100 V 112 Q 194 120 186 120 H 154 L 142 132 V 120 H 138 Q 130 120 130 112 V 100 Q 130 92 138 92 Z" fill="#fff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="144" y="107" width="34" height="4" rx="2" fill="#ccd7df"/>
+<rect x="144" y="120" width="22" height="4" rx="2" fill="#ccd7df"/>
+<circle cx="176" cy="104" r="5" fill="#f2bd65"/>
+<text x="162" y="113" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="8" font-weight="600" fill="#6a7480" text-anchor="middle">rhyme</text>
+<path d="M 63 46 Q 101 27 139 46" fill="none" stroke="#73b89c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 190 40 L 192.8 45.2 L 198 48 L 192.8 50.8 L 190 56 L 187.2 50.8 L 182 48 L 187.2 45.2 Z" fill="#f2bd65"/>
+<path d="M 218 61 L 219.75 64.25 L 223 66 L 219.75 67.75 L 218 71 L 216.25 67.75 L 213 66 L 216.25 64.25 Z" fill="#ee7b73"/>
+<path d="M 170 68 L 171.75 71.25 L 175 73 L 171.75 74.75 L 170 78 L 168.25 74.75 L 165 73 L 168.25 71.25 Z" fill="#68a7d8"/>
+<circle cx="228" cy="38" r="3" fill="#73b89c"/>
+</svg>

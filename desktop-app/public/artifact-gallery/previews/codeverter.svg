@@ -1,0 +1,23 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-codeverter desc-codeverter">
+  <title id="title-codeverter">Codeverter</title>
+  <desc id="desc-codeverter">Simplified preview illustration for Codeverter.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="45" y="51" width="102" height="66" rx="7" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="55" y="62" width="82" height="44" rx="4" fill="#eef5f6"/>
+<rect x="71" y="117" width="50" height="6" rx="2" fill="#d4dee7"/>
+<path d="M 53 129 L 139 129" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="65" cy="73" r="4" fill="#68a7d8"/>
+<rect x="77" y="71" width="40" height="4" rx="2" fill="#b7c6d2"/>
+<rect x="65" y="86" width="62" height="4" rx="2" fill="#d2dbe4"/>
+<rect x="65" y="98" width="45" height="4" rx="2" fill="#d2dbe4"/>
+<text x="80" y="86" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="800" fill="#4f8eb8" text-anchor="middle">JS</text>
+<path d="M 134 84 H 154 M 147 76 L 155 84 L 147 92" fill="none" stroke="#73b89c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="166" y="54" width="48" height="58" rx="7" fill="#fff" stroke="#dbe3ea" stroke-width="1.5"/>
+<text x="190" y="83" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="12" font-weight="800" fill="#4b7461" text-anchor="middle">PY</text>
+<rect x="174" y="95" width="31" height="4" rx="2" fill="#d2dbe4"/>
+<path d="M 199 40 L 201.45 44.55 L 206 47 L 201.45 49.45 L 199 54 L 196.55 49.45 L 192 47 L 196.55 44.55 Z" fill="#f2bd65"/>
+</svg>

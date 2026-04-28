@@ -1,0 +1,25 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-csv-data-visualizer desc-c4e-csv-data-visualizer">
+  <title id="title-c4e-csv-data-visualizer">CSV Data Visualizer</title>
+  <desc id="desc-c4e-csv-data-visualizer">Simplified preview illustration for CSV Data Visualizer.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="44" y="45" width="78" height="72" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<path d="M 44 63 L 122 63" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 44 77 L 122 77" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 44 91 L 122 91" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 44 105 L 122 105" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 63 45 L 63 117" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 81 45 L 81 117" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 99 45 L 99 117" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 117 45 L 117 117" fill="none" stroke="#e4ebf0" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="83" y="58" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="800" fill="#6a7480" text-anchor="middle">CSV</text>
+<rect x="143" y="60" width="54" height="54" rx="8" fill="#fff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="154" y="86" width="8" height="18" rx="2" fill="#68a7d8"/>
+<rect x="167" y="71" width="8" height="33" rx="2" fill="#68a7d8"/>
+<rect x="180" y="79" width="8" height="25" rx="2" fill="#68a7d8"/>
+<rect x="193" y="62" width="8" height="42" rx="2" fill="#68a7d8"/>
+<path d="M 137 116 H 204" fill="none" stroke="#9fb0bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

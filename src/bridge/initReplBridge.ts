@@ -550,7 +550,7 @@ const TITLE_MAX_LEN = 50
  * Quick placeholder title: strip display tags, take the first sentence,
  * collapse whitespace, truncate to 50 chars. Returns undefined if the result
  * is empty (e.g. message was only <local-command-stdout>). Replaced by
- * generateSessionTitle once Haiku resolves (~1-15s).
+ * generateSessionTitle once the configured title model resolves (~1-15s).
  */
 function deriveTitle(raw: string): string | undefined {
   // Strip <ide_opened_file>, <session-start-hook>, etc. — these appear in

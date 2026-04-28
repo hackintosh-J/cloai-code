@@ -234,8 +234,10 @@ const inputSchema = lazySchema(() =>
       'The number of lines to read. Only provide if the file is too large to read at once.',
     ),
     pages: z
-      .string()
-      .optional()
+      .preprocess(
+        value => (typeof value === 'string' && value.trim() === '' ? undefined : value),
+        z.string().optional(),
+      )
       .describe(
         `Page range for PDF files (e.g., "1-5", "3", "10-20"). Only applicable to PDF files. Maximum ${PDF_MAX_PAGES_PER_READ} pages per request.`,
       ),

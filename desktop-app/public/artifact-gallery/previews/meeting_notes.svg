@@ -1,0 +1,22 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-meeting-notes desc-meeting-notes">
+  <title id="title-meeting-notes">Meeting Notes</title>
+  <desc id="desc-meeting-notes">Simplified preview illustration for Meeting Notes.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="91" y="42" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="103" y="56" width="32" height="6" rx="3" fill="#68a7d8"/>
+<rect x="103" y="72" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="103" y="84" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="103" y="96" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="103" y="108" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="103" y="122" width="22" height="6" rx="3" fill="#e9eef3"/>
+<circle cx="59" cy="68" r="12" fill="#d8ebf7" stroke="#8bbbd8" stroke-width="1.5"/>
+<circle cx="200" cy="68" r="12" fill="#ffd7df" stroke="#ee9aad" stroke-width="1.5"/>
+<circle cx="59" cy="101" r="12" fill="#e7f3ed" stroke="#bddacb" stroke-width="1.5"/>
+<circle cx="200" cy="101" r="12" fill="#fff2cf" stroke="#e4cf8b" stroke-width="1.5"/>
+<path d="M 75 68 H 91 M 169 68 H 184 M 75 101 H 91 M 169 101 H 184" fill="none" stroke="#aab9c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="112" y="114" width="36" height="8" rx="4" fill="#73b89c"/>
+</svg>

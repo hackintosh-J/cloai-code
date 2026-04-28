@@ -1,0 +1,7 @@
+<svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" color="#56514A" style="display:block">
+  <style>@media (prefers-color-scheme: dark) { svg { color: #E8E0D4; } }</style>
+  <circle cx="12" cy="8" r="3" fill="currentColor" opacity="0.08" stroke="currentColor" stroke-width="1.55"/>
+  <path d="M6.25 19.25C6.75 16.35 8.7 14.75 12 14.75C15.3 14.75 17.25 16.35 17.75 19.25" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+  <circle cx="18" cy="10.5" r="1.9" stroke="currentColor" stroke-width="1.35" opacity="0.75"/>
+  <path d="M16.75 14.25C18.3 14.45 19.35 15.35 19.75 17" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" opacity="0.75"/>
+</svg>

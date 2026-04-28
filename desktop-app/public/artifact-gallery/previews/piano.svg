@@ -1,0 +1,27 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-piano desc-piano">
+  <title id="title-piano">Piano</title>
+  <desc id="desc-piano">Simplified preview illustration for Piano.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="47" y="58" width="166" height="56" rx="8" fill="#fff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="54" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="71" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="88" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="105" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="122" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="139" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="156" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="173" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="190" y="64" width="15" height="44" rx="2" fill="#ffffff" stroke="#c8d2dc" stroke-width="1"/>
+<rect x="64" y="64" width="9" height="27" rx="2" fill="#3f4b55"/>
+<rect x="81" y="64" width="9" height="27" rx="2" fill="#3f4b55"/>
+<rect x="115" y="64" width="9" height="27" rx="2" fill="#3f4b55"/>
+<rect x="132" y="64" width="9" height="27" rx="2" fill="#3f4b55"/>
+<rect x="149" y="64" width="9" height="27" rx="2" fill="#3f4b55"/>
+<rect x="183" y="64" width="9" height="27" rx="2" fill="#3f4b55"/>
+<path d="M 69 45 C 82 28 111 32 105 53 C 123 38 145 42 140 60 C 155 50 173 52 181 66" fill="none" stroke="#68a7d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 195 40 L 197.45 44.55 L 202 47 L 197.45 49.45 L 195 54 L 192.55 49.45 L 188 47 L 192.55 44.55 Z" fill="#f2bd65"/>
+</svg>

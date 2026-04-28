@@ -1,0 +1,20 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-office-sim desc-office-sim">
+  <title id="title-office-sim">Office Sim</title>
+  <desc id="desc-office-sim">Simplified preview illustration for Office Sim.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="50" y="59" width="160" height="66" rx="8" fill="#fff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="65" y="72" width="38" height="28" rx="5" fill="#d8ebf7"/>
+<rect x="111" y="72" width="38" height="28" rx="5" fill="#e7f3ed"/>
+<rect x="157" y="72" width="38" height="28" rx="5" fill="#fff2cf"/>
+<circle cx="84" cy="61" r="8" fill="#68a7d8"/>
+<circle cx="130" cy="61" r="8" fill="#73b89c"/>
+<circle cx="176" cy="61" r="8" fill="#f2bd65"/>
+<rect x="75" y="105" width="20" height="10" rx="3" fill="#d4dee7"/>
+<rect x="121" y="105" width="20" height="10" rx="3" fill="#d4dee7"/>
+<rect x="167" y="105" width="20" height="10" rx="3" fill="#d4dee7"/>
+<path d="M 50 126 L 210 126" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

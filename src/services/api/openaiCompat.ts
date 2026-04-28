@@ -1972,12 +1972,15 @@ export async function createOpenAICodexStream(
   // Inject ChatGPT OAuth-specific headers for prompt cache stability.
   // These mirror what sub2api injects for OAuth accounts so that direct OAuth
   // requests also get stable conversation_id/session_id → cached prompt hits.
+  const stablePromptCacheKey = config.promptCacheKey
+    ? getStableOpenAIPromptCacheKey(config.promptCacheKey)
+    : undefined
   const oauthHeaders: Record<string, string> = config.promptCacheKey
     ? {
         'OpenAI-Beta': 'responses=experimental',
         'originator': 'cloai-client',
-        'conversation_id': config.promptCacheKey,
-        'session_id': config.promptCacheKey,
+        'conversation_id': stablePromptCacheKey!,
+        'session_id': stablePromptCacheKey!,
       }
     : {}
   const headers = { ...oauthHeaders, ...config.headers }

@@ -1,0 +1,6 @@
+node_modules/
+dist/
+src/native/target/
+bridge-dist/
+src/native/bridge-dist/
+src/native/bridge/

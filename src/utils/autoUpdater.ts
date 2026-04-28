@@ -30,6 +30,10 @@ import { jsonParse } from './slowOperations.js'
 const GCS_BUCKET_URL =
   'https://storage.googleapis.com/claude-code-dist-86c565f3-f756-42ad-8dfa-d59b1c096819/claude-code-releases'
 
+function isCloaiPackage(): boolean {
+  return MACRO.PACKAGE_URL === '@cloai-code/cli'
+}
+
 class AutoUpdaterError extends ClaudeError {}
 
 export type InstallStatus =
@@ -68,7 +72,11 @@ export type MaxVersionConfig = {
  * This approach keeps version comparison logic simple while maintaining traceability via the SHA.
  */
 export async function assertMinVersion(): Promise<void> {
-  if (process.env.NODE_ENV === 'test' || MACRO.VERSION === '0.0.1') {
+  if (
+    process.env.NODE_ENV === 'test' ||
+    MACRO.VERSION === '0.0.1' ||
+    isCloaiPackage()
+  ) {
     return
   }
 

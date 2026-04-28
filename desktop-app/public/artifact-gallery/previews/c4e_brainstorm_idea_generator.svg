@@ -1,0 +1,21 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-brainstorm-idea-generator desc-c4e-brainstorm-idea-generator">
+  <title id="title-c4e-brainstorm-idea-generator">Brainstorm Idea Generator</title>
+  <desc id="desc-c4e-brainstorm-idea-generator">Simplified preview illustration for Brainstorm Idea Generator.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="92" cy="68" r="16" fill="#ffd7df" stroke="#d8708a" stroke-width="2"/>
+<circle cx="112" cy="66" r="17" fill="#ffd7df" stroke="#d8708a" stroke-width="2"/>
+<circle cx="124" cy="84" r="16" fill="#ffd7df" stroke="#d8708a" stroke-width="2"/>
+<circle cx="102" cy="90" r="19" fill="#ffd7df" stroke="#d8708a" stroke-width="2"/>
+<path d="M 94 71 C 101 62, 110 75, 118 66" fill="none" stroke="#d8708a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 95 89 C 106 81, 112 98, 124 86" fill="none" stroke="#d8708a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 136 51 L 138.8 56.2 L 144 59 L 138.8 61.8 L 136 67 L 133.2 61.8 L 128 59 L 133.2 56.2 Z" fill="#f2bd65"/>
+<circle cx="158" cy="75" r="24" fill="#fff2cf" stroke="#e4cf8b" stroke-width="2"/>
+<path d="M 158 99 V 108 M 148 108 H 168" fill="none" stroke="#d7b85f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 133 72 C 141 61 150 57 158 55" fill="none" stroke="#73b89c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="4 5"/>
+<path d="M 191 49 L 194.15 54.85 L 200 58 L 194.15 61.15 L 191 67 L 187.85 61.15 L 182 58 L 187.85 54.85 Z" fill="#68a7d8"/>
+<path d="M 56 101 L 58.45 105.55 L 63 108 L 58.45 110.45 L 56 115 L 53.55 110.45 L 49 108 L 53.55 105.55 Z" fill="#ee7b73"/>
+</svg>

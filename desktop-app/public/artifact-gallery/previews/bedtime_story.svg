@@ -1,0 +1,24 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-bedtime-story desc-bedtime-story">
+  <title id="title-bedtime-story">Bedtime Story</title>
+  <desc id="desc-bedtime-story">Simplified preview illustration for Bedtime Story.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <path d="M 116 46 C 96 53 84 73 90 94 C 97 117 123 127 146 115 C 125 113 108 97 106 76 C 104 64 108 54 116 46 Z" fill="#f7df9a" stroke="#d7b85f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="54" y="57" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="66" y="71" width="32" height="6" rx="3" fill="#68a7d8"/>
+<rect x="66" y="87" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="99" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="111" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="123" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="66" y="137" width="22" height="6" rx="3" fill="#e9eef3"/>
+<rect x="147" y="82" width="50" height="24" rx="9" fill="#fff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="156" y="72" width="24" height="18" rx="9" fill="#ffd7df" stroke="#e2a5b3" stroke-width="1.5"/>
+<path d="M 151 106 L 204 106" fill="none" stroke="#9fb0bf" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 190 47 L 192.8 52.2 L 198 55 L 192.8 57.8 L 190 63 L 187.2 57.8 L 182 55 L 187.2 52.2 Z" fill="#f2bd65"/>
+<path d="M 218 68 L 219.75 71.25 L 223 73 L 219.75 74.75 L 218 78 L 216.25 74.75 L 213 73 L 216.25 71.25 Z" fill="#ee7b73"/>
+<path d="M 170 75 L 171.75 78.25 L 175 80 L 171.75 81.75 L 170 85 L 168.25 81.75 L 165 80 L 168.25 78.25 Z" fill="#68a7d8"/>
+<circle cx="228" cy="45" r="3" fill="#73b89c"/>
+</svg>

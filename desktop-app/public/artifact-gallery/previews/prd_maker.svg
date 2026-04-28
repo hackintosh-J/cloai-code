@@ -1,0 +1,23 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-prd-maker desc-prd-maker">
+  <title id="title-prd-maker">PRD Maker</title>
+  <desc id="desc-prd-maker">Simplified preview illustration for PRD Maker.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="58" y="43" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="70" y="57" width="32" height="6" rx="3" fill="#68a7d8"/>
+<rect x="70" y="73" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="70" y="85" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="70" y="97" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="70" y="109" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="70" y="123" width="22" height="6" rx="3" fill="#e9eef3"/>
+<rect x="151" y="50" width="50" height="18" rx="6" fill="#e7f3ed" stroke="#bddacb" stroke-width="1.5"/>
+<rect x="151" y="78" width="50" height="18" rx="6" fill="#fff2cf" stroke="#e4cf8b" stroke-width="1.5"/>
+<rect x="151" y="106" width="50" height="18" rx="6" fill="#ffd7df" stroke="#ee9aad" stroke-width="1.5"/>
+<path d="M 132 59 H 151 M 132 87 H 151 M 132 115 H 151" fill="none" stroke="#aab9c4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="176" y="63" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="7" font-weight="700" fill="#4b7461" text-anchor="middle">goal</text>
+<text x="176" y="91" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="7" font-weight="700" fill="#8a6c23" text-anchor="middle">scope</text>
+<text x="176" y="119" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="7" font-weight="700" fill="#b84e55" text-anchor="middle">risk</text>
+</svg>

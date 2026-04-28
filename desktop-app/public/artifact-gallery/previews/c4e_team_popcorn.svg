@@ -1,0 +1,20 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-team-popcorn desc-c4e-team-popcorn">
+  <title id="title-c4e-team-popcorn">Team Popcorn</title>
+  <desc id="desc-c4e-team-popcorn">Simplified preview illustration for Team Popcorn.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="78" cy="66" r="10" fill="#d8ebf7" stroke="#8bbbd8" stroke-width="1.5"/>
+<circle cx="181" cy="66" r="10" fill="#ffd7df" stroke="#ee9aad" stroke-width="1.5"/>
+<circle cx="130" cy="50" r="10" fill="#e7f3ed" stroke="#bddacb" stroke-width="1.5"/>
+<path d="M 99 78 H 161 L 151 124 H 109 Z" fill="#fff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="108" y="80" width="10" height="42" rx="2" fill="#ee7b73"/>
+<rect x="125" y="80" width="10" height="42" rx="2" fill="#f2bd65"/>
+<rect x="142" y="80" width="10" height="42" rx="2" fill="#ee7b73"/>
+<circle cx="111" cy="73" r="8" fill="#fff2cf" stroke="#e4cf8b" stroke-width="1.5"/>
+<circle cx="128" cy="70" r="9" fill="#fff2cf" stroke="#e4cf8b" stroke-width="1.5"/>
+<circle cx="146" cy="73" r="8" fill="#fff2cf" stroke="#e4cf8b" stroke-width="1.5"/>
+<path d="M 88 77 C 103 91 112 93 126 82 M 172 77 C 157 91 148 93 134 82" fill="none" stroke="#9fb0bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

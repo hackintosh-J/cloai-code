@@ -7,7 +7,6 @@ packages/
 .stfolder/
 .stversions/
 .stignore
-desktop/
 
 dist/
 build/
@@ -23,3 +22,11 @@ coverage/
 .claude/
 .idea/
 .vscode/
+archives/
+desktop-app/node_modules/
+desktop-app/dist/
+desktop-app/bridge-dist/
+desktop-app/src/native/bridge-dist/
+desktop-app/src/native/bridge/
+desktop-app/src/native/target/
+desktop-refactor/

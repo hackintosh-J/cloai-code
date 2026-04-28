@@ -1,0 +1,5 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path d="M3.25 14.75L4.45 6.85L7.75 10.3L10 4.2L12.25 10.3L15.55 6.85L16.75 14.75C16.9 15.75 16.15 16.65 15.15 16.65H4.85C3.85 16.65 3.1 15.75 3.25 14.75Z" fill="currentColor" opacity="0.14"/>
+<path d="M3.25 14.75L4.45 6.85L7.75 10.3L10 4.2L12.25 10.3L15.55 6.85L16.75 14.75C16.9 15.75 16.15 16.65 15.15 16.65H4.85C3.85 16.65 3.1 15.75 3.25 14.75Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+<path d="M6.5 14H13.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+</svg>

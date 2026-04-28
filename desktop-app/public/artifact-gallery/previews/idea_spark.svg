@@ -1,0 +1,15 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-idea-spark desc-idea-spark">
+  <title id="title-idea-spark">Idea Spark</title>
+  <desc id="desc-idea-spark">Simplified preview illustration for Idea Spark.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="124" cy="74" r="31" fill="#fff2cf" stroke="#e4cf8b" stroke-width="2"/>
+<path d="M 124 105 V 116 M 110 116 H 138 M 113 124 H 135" fill="none" stroke="#d7b85f" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 85 53 L 88.15 58.85 L 94 62 L 88.15 65.15 L 85 71 L 81.85 65.15 L 76 62 L 81.85 58.85 Z" fill="#68a7d8"/>
+<path d="M 172 53 L 175.15 58.85 L 181 62 L 175.15 65.15 L 172 71 L 168.85 65.15 L 163 62 L 168.85 58.85 Z" fill="#ee7b73"/>
+<path d="M 92 105 C 108 127 151 127 168 105" fill="none" stroke="#73b89c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="124" y="82" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="20" font-weight="800" fill="#8a6c23" text-anchor="middle">!</text>
+</svg>

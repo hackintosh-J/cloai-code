@@ -1,0 +1,22 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-c4e-raw-note-transformer desc-c4e-raw-note-transformer">
+  <title id="title-c4e-raw-note-transformer">Raw Note Transformer</title>
+  <desc id="desc-c4e-raw-note-transformer">Simplified preview illustration for Raw Note Transformer.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="48" y="51" width="70" height="72" rx="8" fill="#fff8dc" stroke="#e4cf8b" stroke-width="1.5"/>
+<rect x="60" y="67" width="38" height="4" rx="2" fill="#d8bd69"/>
+<rect x="60" y="82" width="46" height="4" rx="2" fill="#d8bd69"/>
+<path d="M 57 101 C 72 92 87 112 105 98" fill="none" stroke="#d8bd69" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 128 84 H 148 M 141 76 L 149 84 L 141 92" fill="none" stroke="#73b89c" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="160" y="42" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="172" y="56" width="32" height="6" rx="3" fill="#68a7d8"/>
+<rect x="172" y="72" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="172" y="84" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="172" y="96" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="172" y="108" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="172" y="122" width="22" height="6" rx="3" fill="#e9eef3"/>
+<path d="M 135 53 L 137.45 57.55 L 142 60 L 137.45 62.45 L 135 67 L 132.55 62.45 L 128 60 L 132.55 57.55 Z" fill="#ee7b73"/>
+</svg>

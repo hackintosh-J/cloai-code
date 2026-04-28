@@ -1,0 +1,16 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-synesthesia desc-synesthesia">
+  <title id="title-synesthesia">Synesthesia</title>
+  <desc id="desc-synesthesia">Simplified preview illustration for Synesthesia.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <path d="M 61 107 C 83 50 113 130 135 73 S 178 46 202 105" fill="none" stroke="#68a7d8" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="77" cy="83" r="10" fill="#ee7b73"/>
+<circle cx="111" cy="97" r="12" fill="#f2bd65"/>
+<circle cx="143" cy="72" r="10" fill="#73b89c"/>
+<circle cx="178" cy="78" r="13" fill="#ffd7df" stroke="#ee9aad" stroke-width="1.5"/>
+<path d="M 62 61 H 91 M 171 112 H 206" fill="none" stroke="#9fb0bf" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 129 43 L 131.8 48.2 L 137 51 L 131.8 53.8 L 129 59 L 126.2 53.8 L 121 51 L 126.2 48.2 Z" fill="#68a7d8"/>
+</svg>

@@ -1,0 +1,20 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-pylingo desc-pylingo">
+  <title id="title-pylingo">Pylingo</title>
+  <desc id="desc-pylingo">Simplified preview illustration for Pylingo.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="67" y="54" width="52" height="42" rx="10" fill="#68a7d8"/>
+<rect x="107" y="72" width="52" height="42" rx="10" fill="#f2bd65"/>
+<circle cx="84" cy="68" r="4" fill="#fff"/>
+<circle cx="142" cy="100" r="4" fill="#fff"/>
+<path d="M 119 87 H 141" fill="none" stroke="#3f4b55" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 161 43 H 199 Q 207 43 207 51 V 67 Q 207 75 199 75 H 177 L 165 87 V 75 H 161 Q 153 75 153 67 V 51 Q 153 43 161 43 Z" fill="#fff" stroke="#dbe3ea" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="167" y="58" width="24" height="4" rx="2" fill="#ccd7df"/>
+<rect x="167" y="71" width="12" height="4" rx="2" fill="#ccd7df"/>
+<circle cx="189" cy="59" r="5" fill="#73b89c"/>
+<text x="180" y="66" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="8" font-weight="700" fill="#4b7461" text-anchor="middle">lang</text>
+<text x="91" y="83" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="13" font-weight="800" fill="#fff" text-anchor="middle">py</text>
+</svg>

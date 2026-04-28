@@ -1,0 +1,18 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-molecule desc-molecule">
+  <title id="title-molecule">Molecule</title>
+  <desc id="desc-molecule">Simplified preview illustration for Molecule.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <circle cx="89" cy="85" r="16" fill="#68a7d8" stroke="#4f8eb8" stroke-width="2"/>
+<circle cx="130" cy="58" r="13" fill="#f2bd65" stroke="#d7b85f" stroke-width="2"/>
+<circle cx="166" cy="88" r="18" fill="#73b89c" stroke="#4b7461" stroke-width="2"/>
+<circle cx="125" cy="115" r="12" fill="#ee7b73" stroke="#b84e55" stroke-width="2"/>
+<path d="M 102 76 L 119 65" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 142 66 L 153 78" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 151 99 L 135 109" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 99 96 L 115 109" fill="none" stroke="#9fb0bf" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 190 46 L 192.1 49.9 L 196 52 L 192.1 54.1 L 190 58 L 187.9 54.1 L 184 52 L 187.9 49.9 Z" fill="#d8ebf7"/>
+</svg>

@@ -1,0 +1,24 @@
+<svg width="260" height="164" viewBox="0 0 260 164" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title-better-very desc-better-very">
+  <title id="title-better-very">Better Very</title>
+  <desc id="desc-better-very">Simplified preview illustration for Better Very.</desc>
+  <rect width="260" height="164" fill="#eef3f1"/>
+  <path d="M0 126 C38 113 57 143 96 130 C132 118 150 139 188 124 C219 112 237 118 260 104 V164 H0 Z" fill="#dde9e4"/>
+  <circle cx="220" cy="35" r="24" fill="#f7df9a" opacity="0.7"/>
+  <rect x="18" y="14" width="224" height="136" rx="14" fill="#ffffff" stroke="#d5dfdd" stroke-width="1.5"/>
+  <rect x="30" y="26" width="200" height="112" rx="10" fill="#f8faf9"/>
+  <rect x="53" y="42" width="78" height="96" rx="8" fill="#ffffff" stroke="#dbe3ea" stroke-width="1.5"/>
+<rect x="65" y="56" width="32" height="6" rx="3" fill="#ee7b73"/>
+<rect x="65" y="72" width="54" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="65" y="84" width="48" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="65" y="96" width="58" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="65" y="108" width="36" height="4" rx="2" fill="#c8d2dc"/>
+<rect x="65" y="122" width="22" height="6" rx="3" fill="#e9eef3"/>
+<rect x="143" y="57" width="60" height="22" rx="6" fill="#fff2cf" stroke="#e4cf8b" stroke-width="1.5"/>
+<text x="173" y="72" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="10" font-weight="700" fill="#8a6c23" text-anchor="middle">very</text>
+<path d="M 121 83 L 171 83" fill="none" stroke="#c5d0da" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M 156 74 L 183 101" fill="none" stroke="#73b89c" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<circle cx="183" cy="101" r="7" fill="#73b89c"/>
+<rect x="138" y="101" width="70" height="18" rx="6" fill="#e7f3ed" stroke="#bddacb" stroke-width="1.5"/>
+<text x="173" y="114" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="8" font-weight="700" fill="#4b7461" text-anchor="middle">precise</text>
+<path d="M 197 35 L 199.8 40.2 L 205 43 L 199.8 45.8 L 197 51 L 194.2 45.8 L 189 43 L 194.2 40.2 Z" fill="#f2bd65"/>
+</svg>
