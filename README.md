@@ -67,11 +67,11 @@
 
 ![Cloai Desktop code workspace preview](https://github.com/user-attachments/assets/b7fa0ce4-a150-4672-9349-c2937a63d751)
 
-_Code 工作区：文件树、代码编辑、对话执行、Git 状态与 Artifact 预览在同一工作流中展开。_
+_Artifact 预览：AI 生成的 HTML / 文档产物可在右侧面板实时查看与复制。_
 
 ![Cloai Desktop artifact preview](https://github.com/user-attachments/assets/ed44eb22-9336-419f-8488-e88e9196c609)
 
-_Artifact 预览：AI 生成的 HTML / 文档产物可在右侧面板实时查看与复制。_
+_Code 工作区：文件树、代码编辑、对话执行、Git 状态与 Artifact 预览在同一工作流中展开。_
 
 ### 本次版本重点
 
