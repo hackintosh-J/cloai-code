@@ -65,13 +65,13 @@
 ## 🖥️ 桌面端：Cloai Desktop (0.0.3)
 如果你不习惯纯命令行操作，现在可以使用全新的 **Cloai Desktop** 桌面应用。它将 Claude Code 强大的文件处理和代码执行能力，包装进了一个持续迭代中的本地图形化工作台里；在 0.0.3 中，桌面端进一步收拢导航结构、增强代码主工作区，并补齐更多原生命令桥接能力。
 
-<img width="2560" height="1526" alt="ab130b3b659f2c641018d4ce92af5b15" src="https://github.com/user-attachments/assets/b7fa0ce4-a150-4672-9349-c2937a63d751" />
+![Cloai Desktop code workspace preview](https://github.com/user-attachments/assets/b7fa0ce4-a150-4672-9349-c2937a63d751)
 
--
+_Code 工作区：文件树、代码编辑、对话执行、Git 状态与 Artifact 预览在同一工作流中展开。_
 
-<img width="2560" height="1524" alt="0b57dc143ed686403df2873764eea913" src="https://github.com/user-attachments/assets/ed44eb22-9336-419f-8488-e88e9196c609" />
+![Cloai Desktop artifact preview](https://github.com/user-attachments/assets/ed44eb22-9336-419f-8488-e88e9196c609)
 
-
+_Artifact 预览：AI 生成的 HTML / 文档产物可在右侧面板实时查看与复制。_
 
 ### 本次版本重点
 
