@@ -16,6 +16,9 @@ const DraggableDivider: React.FC<DraggableDividerProps> = ({ onResize, container
   useEffect(() => {
     if (!isDragging) return;
 
+    const iframes = Array.from(document.querySelectorAll('iframe'));
+    const previousIframePointerEvents = iframes.map((iframe) => iframe.style.pointerEvents);
+
     const handleMouseMove = (e: MouseEvent) => {
       let percent = 0;
       if (containerRef?.current) {
@@ -40,19 +43,25 @@ const DraggableDivider: React.FC<DraggableDividerProps> = ({ onResize, container
     document.addEventListener('mouseup', handleMouseUp);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
+    iframes.forEach((iframe) => {
+      iframe.style.pointerEvents = 'none';
+    });
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      iframes.forEach((iframe, index) => {
+        iframe.style.pointerEvents = previousIframePointerEvents[index] || '';
+      });
     };
   }, [isDragging, onResize, containerRef]);
 
   return (
     <div
       onMouseDown={handleMouseDown}
-      className="w-[16px] -ml-[8px] flex-shrink-0 cursor-col-resize z-50 flex items-center justify-center h-full group outline-none relative"
+      className="h-full w-full flex-shrink-0 cursor-col-resize z-50 flex items-center justify-center group outline-none relative touch-none"
     >
       {/* Visual Guide Line (on hover/drag) */}
       <div className={`absolute top-0 bottom-0 w-[1px] transition-colors duration-200 ${

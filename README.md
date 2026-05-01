@@ -19,12 +19,12 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 4 月 28 日** 
-- ⭐ **cloai Desktop 0.0.2 预览版发布**：把 cloai 的桌面前端接到本地 bridge 和自托管模型配置上，1:1 还原官方 UI，自带完整 Agent、Artifacts 和独立知识库能力！（详见下方桌面端介绍）
-- ⭐ **新增 GitHub Copilot OAuth 的 GPT 系列模型缓存支持**：补齐对应 OpenAI-compatible 路径上的 Responses 缓存命中能力。
-- ⭐ **`/login` 登录体系重写**：新增账号管理、Provider 分组、官方/自定义子菜单、分步配置与 OAuth 回填，整个登录链路从一次性录入升级为可持续管理的闭环。
-- ⭐ **正式支持 GitHub Copilot OAuth**：已实测 `gpt-5-mini`、`claude-haiku-4.5`、`gemini-3-flash-preview`，并补齐 OpenAI OAuth、Google AI Studio、Google Antigravity (OAuth) 等官方线路。
-- ⭐ **官方 / OAuth 线路支持自动写入模型列表**：OpenAI Official / OAuth、Google AI Studio、Google Antigravity (OAuth)、GitHub Copilot OAuth 登录完成后即可在 `/model` 直接切换。
+更新于 **2026 年 4 月 29 日**
+- ⭐ **cloai Desktop 0.0.3 预览版发布**：桌面端完成一轮主工作区与导航结构升级，新增原生窗口控制、代码页整合与更完整的本地 bridge 能力。（详见下方桌面端介绍）
+- ⭐ **桌面端移除 Cowork 独立入口**：主导航重新聚焦 Chat / Code 两个主模式，Projects 作为项目上下文入口随模式工作，减少预览阶段的重复分叉路径。
+- ⭐ **Code 主工作区体验升级**：`CodePage`、对话工作区、项目工作区与拖拽分栏联动重构，工作流更顺。
+- ⭐ **桌面端原生命令桥接继续补强**：新增 commands / streaming / artifacts / projects 相关原生链路，为更多本地动作打基础。
+- ⭐ **窗口与标题栏原生化增强**：新增 `WindowControls` 并同步调整标题栏与窗口配置，桌面应用质感更完整。
 
 更多历史更新与细节说明请跳转查看：[详细更新日志](#详细更新日志)
 
@@ -62,10 +62,18 @@
 
 -----
 
-## 🖥️ 桌面端：Cloai Desktop (0.0.2)
-如果你不习惯纯命令行操作，现在可以使用全新的 **Cloai Desktop** 桌面应用。它将 Claude Code 强大的文件处理和代码执行能力，包装进了一个还原官方 Web 体验的图形化界面中。
-<img width="1729" height="1097" alt="image" src="https://github.com/user-attachments/assets/32546aba-bf9b-4b5c-ae1f-622058242794" />
+## 🖥️ 桌面端：Cloai Desktop (0.0.3)
+如果你不习惯纯命令行操作，现在可以使用全新的 **Cloai Desktop** 桌面应用。它将 Claude Code 强大的文件处理和代码执行能力，包装进了一个持续迭代中的本地图形化工作台里；在 0.0.3 中，桌面端进一步收拢导航结构、增强代码主工作区，并补齐更多原生命令桥接能力。
 
+> [预留：在这里放置 Cloai Desktop v0.0.3 展示窗口截图]
+
+### 本次版本重点
+
+- **主导航与模式结构收拢**：移除 Cowork 独立入口，重新整理侧边栏、模式切换与标题栏，让 Chat / Code 两个主模式更直接，并让 Projects 作为项目上下文入口自然融入对应工作流。
+- **新增原生窗口控制组件**：桌面端补上独立的窗口控制区，结合自定义标题栏和 Tauri 窗口配置，整体更像完整桌面应用而不是网页壳。
+- **代码主工作区整合升级**：`CodePage` 成为更完整的工作入口，对话工作区、项目工作区与拖拽分栏体验同步调整，减少页面切换成本。
+- **本地桥接能力继续补强**：新增命令、能力声明与 streaming / artifacts / projects 相关原生链路，为后续更深的桌面动作支持打底。
+- **视觉与资源同步清理**：移除旧的 Cowork 图标与页面资源，统一导航资产与共享组件，界面结构更一致。
 
 ### 核心特性
 
@@ -85,7 +93,7 @@
 
 ### 快速操作指南
 
-1. **安装**：在仓库 Releases 页面下载对应系统的安装包（当前仅支持 `.exe` ，`.dmg` 与 `.AppImage` 将随后提供）。
+1. **安装**：在仓库 Releases 页面下载对应系统的安装包（当前支持 Windows `.exe`，`.dmg` 与 `.AppImage` 已进入打包目标配置）。
 2. **配置模型**：打开桌面端后，进入 **Settings → Models**，添加你的自定义 Provider（填入第三方 Base URL 和 API Key）。**为稳定性考虑，强烈建议在 cloai-code 中添加配置后一键导入**。
 3. **开始使用**：在主对话界面即可像使用网页版一样对话。可以使用输入框的 `+` 菜单调用 `/skill-name` 触发保存在 `~/.claude/skills/` 的自定义指令集。
 
@@ -839,6 +847,14 @@ cloai
 -----
 
 ## 详细更新日志
+
+### 2026 年 4 月 29 日更新
+- 发布 Cloai Desktop 0.0.3 预览版，并将 cloai-code 与 cloai-desktop 版本号同步提升至 `v0.0.3`。
+- 桌面端移除 Cowork 独立页面与相关导航资产，重新整理 `AppLayout`、`AppSidebar`、`ModeTabs`、`TitleBar` 等主框架组件，聚焦 Chat / Code 两个主模式，并让 Projects 作为项目上下文入口随对应模式工作。
+- 新增 `WindowControls` 组件，并配合 Tauri 窗口配置调整标题栏与窗口行为，补强桌面应用原生化体验。
+- 重构 `CodePage`、`ConversationWorkspace`、`ProjectsWorkspace` 与拖拽分栏相关交互，强化代码页主工作区承载能力与布局切换体验。
+- 补齐桌面端原生命令与能力桥接：更新 `commands.rs`、`lib.rs`、`streaming.rs`、`projects.rs`、`artifacts.rs` 及 capability 定义，为更多本地能力接入打基础。
+- 同步清理旧的 Cowork 图标、页面组件和样式资源，统一共享图标与导航结构，降低后续维护成本。
 
 ### 2026 年 4 月 24 日更新
 - 发布 Cloai Desktop 0.0.1 预览版，采用 Tauri 2 + React 19 构建跨平台桌面应用；通过独立的本地 Bridge Server 实现 GUI 与底层引擎的通信和多格式代理转换。

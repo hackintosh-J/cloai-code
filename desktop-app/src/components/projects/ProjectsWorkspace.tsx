@@ -13,10 +13,9 @@ import { safeGetStorageItem, safeParseStorageJson } from '@/src/utils/safeStorag
 const ProjectsPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isCoworkProjects = location.pathname.startsWith('/cowork/projects');
   const isCodeProjects = location.pathname.startsWith('/code/projects');
-  const conversationPath = (id: string) => isCoworkProjects ? `/cowork/${id}` : isCodeProjects ? `/code/${id}` : `/chat/${id}`;
-  const customizePath = isCoworkProjects ? '/cowork/customize' : isCodeProjects ? '/code/customize' : '/customize';
+  const conversationPath = (id: string) => isCodeProjects ? `/code/${id}` : `/chat/${id}`;
+  const customizePath = isCodeProjects ? '/code/customize' : '/customize';
   const [searchQuery, setSearchQuery] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [projectName, setProjectName] = useState('');

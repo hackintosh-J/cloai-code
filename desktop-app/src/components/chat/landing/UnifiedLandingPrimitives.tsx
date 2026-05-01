@@ -20,7 +20,7 @@ interface UnifiedInputContainerProps {
 
 /**
  * 统一的输入框容器组件
- * 使用Code页面的设计风格 + Cowork的快速动画
+ * 使用Code页面的设计风格和快速动画
  */
 export const UnifiedInputContainer: React.FC<UnifiedInputContainerProps> = ({
   children,

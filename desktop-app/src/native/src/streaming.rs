@@ -193,11 +193,16 @@ struct ConversationRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 struct MessageRecord {
+    #[serde(default)]
     id: String,
+    #[serde(default)]
     #[serde(alias = "conversationId")]
     conversation_id: String,
+    #[serde(default)]
     role: String,
+    #[serde(default)]
     content: String,
+    #[serde(default)]
     #[serde(alias = "createdAt")]
     created_at: String,
     #[serde(default)]
@@ -384,6 +389,14 @@ fn estimate_token_count(text: &str) -> i64 {
     char_estimate.max(word_estimate).max(0)
 }
 
+fn message_has_visible_content(message: &MessageRecord) -> bool {
+    !message.role.trim().is_empty()
+        || !message.content.trim().is_empty()
+        || message.attachments.is_some()
+        || message.tool_calls.is_some()
+        || message.thinking.is_some()
+}
+
 fn append_context_size_event(
     conversation_id: &str,
     state: &mut NativeStreamState,
@@ -393,6 +406,7 @@ fn append_context_size_event(
         .messages
         .iter()
         .filter(|message| message.conversation_id == conversation_id)
+        .filter(|message| message_has_visible_content(message))
         .map(|message| estimate_token_count(&parse_message_content(&message.content)))
         .sum::<i64>();
     state.events.push(serde_json::json!({
@@ -1591,6 +1605,7 @@ pub(crate) fn compact_conversation(
         .messages
         .iter()
         .filter(|message| message.conversation_id == conversation_id)
+        .filter(|message| message_has_visible_content(message))
         .count();
     let (_provider_id, provider, model_id) = find_provider_for_model(&conversation.model)?;
     let env_vars = build_engine_environment(
@@ -1762,6 +1777,7 @@ pub(crate) fn generate_conversation_title(
         .messages
         .iter()
         .filter(|message| message.conversation_id == conversation.id)
+        .filter(|message| message_has_visible_content(message))
         .cloned()
         .collect();
     messages.sort_by(|left, right| left.created_at.cmp(&right.created_at));

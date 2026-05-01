@@ -84,6 +84,14 @@ function prettifyModelName(name?: string, id?: string): string {
   return trimmed.replace(/-/g, ' ');
 }
 
+function compactModelLabel(label: string): string {
+  const normalized = label.trim();
+  if (!normalized) return 'Model';
+  const lastThreeWords = normalized.split(/\s+/).slice(-3).join(' ');
+  if (lastThreeWords.length >= 10) return lastThreeWords;
+  return normalized.length > 10 ? normalized.slice(-10) : normalized;
+}
+
 interface ModelSelectorProps {
   currentModelString: string;
   models: SelectableModel[];
@@ -111,6 +119,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
   const thinking = isThinking(currentModelString);
   const currentModel = models.find(m => m && m.id === currentBase);
   const currentLabel = prettifyModelName(currentModel?.name, currentModel?.id || currentBase);
+  const currentButtonLabel = compactModelLabel(currentLabel);
 
   // Split models into main tiers and extra
   const mainModels = models.filter(m => m && m.tier !== 'extra');
@@ -185,7 +194,7 @@ const ModelSelector: React.FC<ModelSelectorProps> = ({
             : 'flex items-center gap-1.5 text-[15px] font-medium text-claude-text hover:bg-claude-hover px-3 py-2 rounded-md transition-colors'
         }
       >
-        <span>{currentLabel}</span>
+        <span title={currentLabel}>{currentButtonLabel}</span>
         {thinking && (
           <span className={isLandingVariant ? 'font-normal text-[#7b7974] dark:text-claude-textSecondary' : 'text-claude-textSecondary font-normal'}>
             Extended

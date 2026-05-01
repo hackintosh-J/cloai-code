@@ -29,8 +29,11 @@ pub(crate) struct ArtifactContent {
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 struct ConversationRecord {
+    #[serde(default)]
     id: String,
+    #[serde(default)]
     title: String,
+    #[serde(default)]
     #[serde(alias = "workspacePath")]
     workspace_path: String,
 }
@@ -38,9 +41,12 @@ struct ConversationRecord {
 #[derive(Debug, Clone, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 struct MessageRecord {
+    #[serde(default)]
     id: String,
+    #[serde(default)]
     #[serde(alias = "conversationId")]
     conversation_id: String,
+    #[serde(default)]
     #[serde(alias = "createdAt")]
     created_at: String,
     #[serde(default)]
@@ -120,6 +126,9 @@ pub(crate) fn get_artifacts(_app: &AppHandle) -> Result<Vec<ArtifactRecord>, Str
     let mut artifacts = Vec::new();
 
     for message in &db.messages {
+        if message.conversation_id.trim().is_empty() {
+            continue;
+        }
         for tool_call in artifact_tool_calls(message) {
             let Some(name) = tool_call.get("name").and_then(Value::as_str) else {
                 continue;

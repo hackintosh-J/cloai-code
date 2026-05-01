@@ -31,11 +31,16 @@ pub(crate) struct ConversationRecord {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
 struct MessageRecord {
+    #[serde(default)]
     id: String,
+    #[serde(default)]
     #[serde(alias = "conversationId")]
     conversation_id: String,
+    #[serde(default)]
     role: String,
+    #[serde(default)]
     content: String,
+    #[serde(default)]
     #[serde(alias = "createdAt")]
     created_at: String,
     #[serde(default)]
@@ -54,20 +59,13 @@ struct MessageRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
-struct ProjectRecord {
-    id: String,
-    name: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
 struct DesktopDb {
     #[serde(default)]
     conversations: Vec<ConversationRecord>,
     #[serde(default)]
     messages: Vec<MessageRecord>,
     #[serde(default)]
-    projects: Vec<ProjectRecord>,
+    projects: Vec<Value>,
     #[serde(default)]
     project_files: Vec<Value>,
 }
@@ -233,6 +231,24 @@ fn normalize_message(record: &MessageRecord) -> Value {
     value
 }
 
+fn project_record_id(project: &Value) -> Option<&str> {
+    project.get("id").and_then(Value::as_str)
+}
+
+fn project_name(project: &Value) -> Option<String> {
+    project
+        .get("name")
+        .and_then(Value::as_str)
+        .map(str::to_string)
+}
+
+fn message_has_visible_content(message: &MessageRecord) -> bool {
+    !message.role.trim().is_empty()
+        || !message.content.trim().is_empty()
+        || message.attachments.is_some()
+        || message.tool_calls.is_some()
+}
+
 fn message_created_at_millis(message: &MessageRecord) -> i64 {
     chrono::DateTime::parse_from_rfc3339(&message.created_at)
         .map(|value| value.timestamp_millis())
@@ -287,8 +303,8 @@ pub(crate) fn list_conversations(
             project_name: conversation.project_id.as_ref().and_then(|project_id| {
                 db.projects
                     .iter()
-                    .find(|project| &project.id == project_id)
-                    .map(|project| project.name.clone())
+                    .find(|project| project_record_id(project) == Some(project_id.as_str()))
+                    .and_then(project_name)
             }),
         })
         .collect();
@@ -310,6 +326,7 @@ pub(crate) fn get_conversation(id: String) -> Result<ConversationDetail, String>
         .messages
         .iter()
         .filter(|message| message.conversation_id == conversation.id)
+        .filter(|message| message_has_visible_content(message))
         .cloned()
         .collect();
     messages.sort_by(|left, right| left.created_at.cmp(&right.created_at));
@@ -418,8 +435,8 @@ pub(crate) fn update_conversation(
         let project_name = snapshot.project_id.as_ref().and_then(|project_id| {
             db.projects
                 .iter()
-                .find(|project| &project.id == project_id)
-                .map(|project| project.name.clone())
+                .find(|project| project_record_id(project) == Some(project_id.as_str()))
+                .and_then(project_name)
         });
         Ok((snapshot, project_name))
     })?;

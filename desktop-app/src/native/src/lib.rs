@@ -12,12 +12,32 @@ mod runtime;
 mod skills;
 mod streaming;
 mod uploads;
+mod workspace;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_shell::init())
+        .setup(|app| {
+            #[cfg(target_os = "macos")]
+            {
+                use tauri::{Manager, TitleBarStyle};
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_title_bar_style(TitleBarStyle::Overlay);
+                }
+            }
+
+            #[cfg(not(target_os = "macos"))]
+            {
+                use tauri::Manager;
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.set_decorations(false);
+                }
+            }
+
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             commands::get_platform,
             commands::get_app_path,
@@ -26,6 +46,16 @@ pub fn run() {
             commands::select_bun_file,
             commands::open_folder,
             commands::show_item_in_folder,
+            commands::workspace_list_entries,
+            commands::workspace_read_file,
+            commands::workspace_read_file_data_url,
+            commands::workspace_write_file,
+            commands::workspace_create_entry,
+            commands::workspace_delete_path,
+            commands::workspace_rename_path,
+            commands::workspace_git_status,
+            commands::workspace_git_diff,
+            commands::workspace_git_stage,
             commands::resize_window,
             commands::get_workspace_config,
             commands::set_workspace_config,

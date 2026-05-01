@@ -1,6 +1,6 @@
 {
   "name": "@cloai-code/cli",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "private": true,
   "description": "Restored Claude Code source tree reconstructed from source maps.",
   "license": "SEE LICENSE IN LICENSE.md",

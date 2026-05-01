@@ -26,14 +26,10 @@ const AppRoutes = () => {
       <Route path="/" element={<AppLayout />} />
       <Route path="/chats" element={<AppLayout />} />
       <Route path="/customize" element={<AppLayout />} />
-      <Route path="/cowork/customize" element={<AppLayout />} />
       <Route path="/code/customize" element={<AppLayout />} />
       <Route path="/projects" element={<AppLayout />} />
-      <Route path="/cowork/projects" element={<AppLayout />} />
       <Route path="/code/projects" element={<AppLayout />} />
       <Route path="/artifacts" element={<AppLayout />} />
-      <Route path="/cowork" element={<AppLayout />} />
-      <Route path="/cowork/:id" element={<AppLayout />} />
       <Route path="/code" element={<AppLayout />} />
       <Route path="/code/:id" element={<AppLayout />} />
       <Route path="/scheduled" element={<AppLayout />} />

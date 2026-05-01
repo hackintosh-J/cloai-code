@@ -17,7 +17,7 @@ domains.
 | `assets/fixtures/` | Static JSON data used by gallery pages, mocks, or fixture-style imports. |
 | `assets/home/` | Chat landing composer, prompt suggestion, model selector, and plus-menu assets. |
 | `assets/customization/` | Connector logos, directory controls, directory nav, plugin icons, and customization landing art. |
-| `assets/navigation/` | App shell, sidebar, code/cowork mode, and capsule navigation icons. |
+| `assets/navigation/` | App shell, sidebar, code mode, and navigation icons. |
 | `assets/profile-menu/` | Profile/account dropdown icons. |
 | `assets/scheduled/` | Scheduled task page icons. |
 | `assets/projects/` | Project page empty-state art. |
@@ -74,11 +74,9 @@ no live imports.
 | `desktop/src/assets/icons/{skills,connectors,customize-main,create-skills,connect-tools,customize-icon}.png` | `desktop-app/assets/customization/landing/*.png` | Customization landing page artwork and icons. |
 | `desktop/src/assets/icons/{sidebar-toggle,new_chat,code,search-icon,artifacts,chats,projects,web-search}.png` | `desktop-app/assets/navigation/app-shell/*` | General app-shell navigation icons. Names normalized to kebab-case where needed. |
 | `desktop/src/assets/sidebar-custom/code-*.svg` | `desktop-app/assets/navigation/sidebar/code/*.svg` | Code-mode sidebar icons with mode prefix removed. |
-| `desktop/src/assets/sidebar-custom/cowork-*.svg` | `desktop-app/assets/navigation/sidebar/cowork/*.svg` | Cowork-mode sidebar icons with mode prefix removed. |
 | `desktop/src/assets/sidebar-custom/recent-conversation-ring.svg` | `desktop-app/assets/navigation/sidebar/shared/recent-conversation-ring.svg` | Shared recent-conversation marker. |
 | `desktop/src/assets/figma-exports/sidebar-icons/*.svg` | `desktop-app/assets/navigation/sidebar/classic/*.svg` | Sidebar icons used directly by current components. |
 | `desktop/src/assets/sidebar-exact/*.svg` | `desktop-app/assets/navigation/sidebar/classic/*-exact.svg` | Exact sidebar icon variants. |
-| `desktop/src/assets/cowork-capsule-icons/*.svg` | `desktop-app/assets/navigation/cowork-capsules/*.svg` | Cowork capsule feature icons. |
 | `desktop/src/assets/profile-menu/*.svg` | `desktop-app/assets/profile-menu/*.svg` | Profile/account menu icons. |
 | `desktop/src/assets/figma-exports/scheduled-page/*-icon.svg` | `desktop-app/assets/scheduled/*.svg` | Scheduled page controls and empty-state icons. |
 | `desktop/src/assets/figma-exports/scheduled-page/keep-awake-toggle.svg` | `desktop-app/assets/scheduled/keep-awake-toggle.svg` | Scheduled page keep-awake toggle art. |
@@ -94,7 +92,6 @@ dynamic URL load, or data reference was found during the static scan:
 | `desktop/src/assets/figma-exports/asset-*.png` | Raw Figma dump filenames with no current code references. |
 | `desktop/src/assets/figma-exports/vectorized*.svg` | Raw/vectorized Figma exports with no current code references. |
 | `desktop/src/assets/figma-exports/svg-converted/asset-*.svg` | Converted Figma dump assets with no current code references. |
-| `desktop/src/assets/figma-exports/cowork-icons/*` | Legacy duplicate cowork icon exports; clearer sidebar/capsule variants were migrated. |
 
 If future refactor work discovers a live reference to one of these files, copy it
 into the matching domain directory rather than reintroducing `figma-exports/`.

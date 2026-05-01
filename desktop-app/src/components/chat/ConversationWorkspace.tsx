@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { ChevronDown, FileText, ArrowUp, RotateCcw, Pencil, Copy, Check, Paperclip, ListCollapse, Globe, Clock, Info, Github, Plus, X, Loader2, Folder } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { IconPlus, IconVoice, IconPencil, IconProjects, IconResearch, IconWebSearch, IconCoworkSparkle } from '@/src/components/Icons';
+import { IconPlus, IconVoice, IconPencil, IconProjects, IconResearch, IconWebSearch, IconClaudeSparkle } from '@/src/components/Icons';
 import AssistantActivityIndicator from '@/src/components/AssistantActivityIndicator';
 import { LONG_THINKING_THRESHOLD_MS } from '@/src/components/assistantActivityState';
 import { getConversation, sendMessage, createConversation, getUser, updateConversation, deleteMessagesFrom, deleteMessagesTail, uploadFile, uploadFilePath, deleteAttachment, compactConversation, answerUserQuestion, getUserUsage, getAttachmentRawUrl, getAttachmentUrl, getGenerationStatus, stopGeneration, getContextSize, getUserModels, getStreamStatus, reconnectStream, getProviderModels, getSkills, warmEngine, getProjects, createProject, Project, materializeGithub, getProviders, Provider, type Skill } from '@/src/services';
@@ -156,38 +156,8 @@ const LANDING_PROMPT_SECTIONS = [
   },
 ] as const;
 
-interface CoworkLaunchSessionPayload {
-  prompt: string;
-  model?: string;
-  projectId?: string | null;
-  researchMode?: boolean;
-  attachments?: Array<{
-    fileId: string;
-    fileName: string;
-    fileType?: 'image' | 'document' | 'text';
-    mimeType: string;
-    size: number;
-  }>;
-}
-
-function createRestoredPendingFile(
-  attachment: NonNullable<CoworkLaunchSessionPayload['attachments']>[number]
-): PendingFile {
-  const fallbackType = attachment.mimeType || 'application/octet-stream';
-  return {
-    id: `restored-${attachment.fileId}`,
-    file: new File([], attachment.fileName, { type: fallbackType }),
-    fileId: attachment.fileId,
-    fileName: attachment.fileName,
-    fileType: attachment.fileType,
-    mimeType: fallbackType,
-    size: attachment.size,
-    progress: 100,
-    status: 'done',
-  };
-}
-
 interface CodeLaunchSessionPayload {
+  requestId?: number;
   folderPath: string;
   prompt?: string;
   model?: string;
@@ -203,6 +173,11 @@ interface MainContentProps {
   onOpenArtifacts?: () => void;
   onTitleChange?: (title: string) => void;
   onChatModeChange?: (isChat: boolean) => void;
+  embeddedInCodeWorkspace?: boolean;
+  codeWorkspacePath?: string | null;
+  codeLaunchRequest?: CodeLaunchSessionPayload | null;
+  onWorkspacePathChange?: (workspacePath: string | null) => void;
+  className?: string;
 }
 
 // 草稿存储：在切换对话、打开设置页面时保留输入内容和附件
@@ -839,24 +814,47 @@ const MessageList = React.memo<MessageListProps>(({
   );
 });
 
-const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtifactsUpdate, onOpenArtifacts, onTitleChange, onChatModeChange }: MainContentProps) => {
+const MainContent = ({
+  onNewChat,
+  resetKey,
+  tunerConfig,
+  onOpenDocument,
+  onArtifactsUpdate,
+  onOpenArtifacts,
+  onTitleChange,
+  onChatModeChange,
+  embeddedInCodeWorkspace = false,
+  codeWorkspacePath,
+  codeLaunchRequest,
+  onWorkspacePathChange,
+  className = '',
+}: MainContentProps) => {
   const { id: routeId } = useParams(); // Get conversation ID from URL
   const location = useLocation();
   const [localId, setLocalId] = useState<string | null>(null);
   const [showEntranceAnimation, setShowEntranceAnimation] = useState(false);
-  const conversationRouteBase = location.pathname.startsWith('/cowork')
-    ? '/cowork'
-    : location.pathname.startsWith('/code')
+  const conversationRouteBase = location.pathname.startsWith('/code')
       ? '/code'
       : '/chat';
-  const customizeRoute = location.pathname.startsWith('/cowork')
-    ? '/cowork/customize'
-    : location.pathname.startsWith('/code')
+  const customizeRoute = location.pathname.startsWith('/code')
       ? '/code/customize'
       : '/customize';
   const pendingWorkspaceFolderRef = useRef<string | null>(null);
   const pendingLaunchModelRef = useRef<string | null>(null);
+  const lastCodeLaunchRequestRef = useRef<number | string | null>(null);
   const [activeWorkspacePath, setActiveWorkspacePath] = useState<string | null>(null);
+  const applyActiveWorkspacePath = useCallback((workspacePath: string | null) => {
+    const normalized = workspacePath || null;
+    setActiveWorkspacePath(normalized);
+    onWorkspacePathChange?.(normalized);
+  }, [onWorkspacePathChange]);
+
+  useEffect(() => {
+    if (!embeddedInCodeWorkspace) return;
+    if (!codeWorkspacePath) return;
+    pendingWorkspaceFolderRef.current = codeWorkspacePath;
+    applyActiveWorkspacePath(codeWorkspacePath);
+  }, [applyActiveWorkspacePath, codeWorkspacePath, embeddedInCodeWorkspace]);
 
   // Use localId if we just created a chat, effectively overriding the lack of URL param until next true navigation
   const id = routeId === 'new' ? null : routeId;
@@ -1004,10 +1002,10 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
   }, [resetKey, user?.nickname]);
 
   // 输入栏参数
-  const inputBarWidth = 768;
+  const inputBarWidth = embeddedInCodeWorkspace ? '100%' : `${tunerConfig?.mainContentWidth || 768}px`;
   const inputBarMinHeight = 32;
   const inputBarRadius = 24;
-  const inputBarBottom = 0;
+  const inputBarBottom = embeddedInCodeWorkspace ? 0 : 0;
   const inputBarBaseHeight = inputBarMinHeight + 16; // border-box: content + padding (pt-4=16px + pb-0=0px)
   const textareaHeightVal = useRef(inputBarBaseHeight);
 
@@ -1132,6 +1130,39 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
   const [showPlusMenu, setShowPlusMenu] = useState(false);
   const [researchMode, setResearchMode] = useState(false);
   const [openedResearchMsgId, setOpenedResearchMsgId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!embeddedInCodeWorkspace || !codeLaunchRequest) return;
+    const launchKey = codeLaunchRequest.requestId ?? `${codeLaunchRequest.folderPath}:${codeLaunchRequest.prompt || ''}:${codeLaunchRequest.model || ''}`;
+    if (lastCodeLaunchRequestRef.current === launchKey) return;
+    lastCodeLaunchRequestRef.current = launchKey;
+
+    const folderPath = codeLaunchRequest.folderPath || codeWorkspacePath || '';
+    pendingWorkspaceFolderRef.current = folderPath || null;
+    applyActiveWorkspacePath(folderPath || null);
+
+    if (codeLaunchRequest.model) {
+      const nextModel = codeLaunchRequest.model.trim();
+      pendingLaunchModelRef.current = nextModel;
+      setCurrentModelString(nextModel);
+      rememberDefaultModel(nextModel);
+    }
+
+    const nextPrompt = typeof codeLaunchRequest.prompt === 'string' ? codeLaunchRequest.prompt.trim() : '';
+    if (nextPrompt) {
+      setInputText(nextPrompt);
+      pendingInitialMessageRef.current = nextPrompt;
+      setPendingLaunchTick(prev => prev + 1);
+      window.setTimeout(() => {
+        const ta = inputRef.current;
+        if (ta) {
+          ta.style.height = 'auto';
+          ta.style.height = Math.min(ta.scrollHeight, 316) + 'px';
+        }
+      }, 0);
+    }
+  }, [applyActiveWorkspacePath, codeLaunchRequest, codeWorkspacePath, embeddedInCodeWorkspace]);
+
   const toggleResearchMode = useCallback(async () => {
     const next = !researchMode;
     setResearchMode(next);
@@ -1216,6 +1247,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
   const [selectedSkill, setSelectedSkill] = useState<{ name: string; slug: string; description?: string } | null>(null);
   const plusMenuRef = useRef<HTMLDivElement>(null);
   const plusBtnRef = useRef<HTMLButtonElement>(null);
+  const plusSubmenuCloseTimerRef = useRef<number | null>(null);
   // Add-to-project state
   const [showProjectsSubmenu, setShowProjectsSubmenu] = useState(false);
   const [projectList, setProjectList] = useState<Project[]>([]);
@@ -1239,6 +1271,13 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
     questions: Array<{ question: string; header?: string; options?: Array<{ label: string; description?: string }>; multiSelect?: boolean }>;
     answers: Record<string, string>;
   } | null>(null);
+
+  useEffect(() => () => {
+    if (plusSubmenuCloseTimerRef.current !== null) {
+      window.clearTimeout(plusSubmenuCloseTimerRef.current);
+      plusSubmenuCloseTimerRef.current = null;
+    }
+  }, []);
 
   // Task/Agent progress state
   const [activeTasks, setActiveTasks] = useState<Map<string, ActiveTaskInfo>>(new Map());
@@ -1366,7 +1405,13 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
       setContextInfo(null);
       setCurrentProjectId(null);
       setPendingProjectId(null);
-      setActiveWorkspacePath(null);
+      if (embeddedInCodeWorkspace && codeWorkspacePath) {
+        pendingWorkspaceFolderRef.current = codeWorkspacePath;
+        applyActiveWorkspacePath(codeWorkspacePath);
+      } else {
+        pendingWorkspaceFolderRef.current = null;
+        applyActiveWorkspacePath(null);
+      }
       // 触发入场动画
       setShowEntranceAnimation(true);
       setTimeout(() => setShowEntranceAnimation(false), 800);
@@ -1387,53 +1432,13 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
         }, 200);
       }
 
-      const coworkPayloadRaw = safeGetStorageItem('cowork_launch_payload_v1', '', 'session');
-      if (coworkPayloadRaw) {
-        safeRemoveStorageItem('cowork_launch_payload_v1', 'session');
-        try {
-          const coworkPayload = JSON.parse(coworkPayloadRaw) as CoworkLaunchSessionPayload;
-          const nextPrompt = typeof coworkPayload.prompt === 'string' ? coworkPayload.prompt.trim() : '';
-          const restoredFiles = Array.isArray(coworkPayload.attachments)
-            ? coworkPayload.attachments
-              .filter((item) => item && item.fileId && item.fileName)
-              .map(createRestoredPendingFile)
-            : [];
-
-          if (coworkPayload.projectId !== undefined) {
-            setPendingProjectId(coworkPayload.projectId || null);
-          }
-
-          if (coworkPayload.researchMode !== undefined) {
-            setResearchMode(!!coworkPayload.researchMode);
-          }
-
-          if (coworkPayload.model) {
-            const nextModel = coworkPayload.model.trim();
-            pendingLaunchModelRef.current = nextModel;
-            setCurrentModelString(nextModel);
-            rememberDefaultModel(nextModel);
-          }
-
-          setTimeout(() => {
-            setInputText(nextPrompt);
-            setPendingFiles(restoredFiles);
-            pendingInitialMessageRef.current = nextPrompt || null;
-            setPendingLaunchTick(prev => prev + 1);
-            const ta = inputRef.current || document.querySelector('textarea');
-            if (ta) {
-              ta.style.height = 'auto';
-              ta.style.height = Math.min(ta.scrollHeight, 316) + 'px';
-            }
-          }, 200);
-        } catch {}
-      }
-
       const codePayloadRaw = safeGetStorageItem('code_launch_payload_v1', '', 'session');
       if (codePayloadRaw) {
         safeRemoveStorageItem('code_launch_payload_v1', 'session');
         try {
           const codePayload = JSON.parse(codePayloadRaw) as CodeLaunchSessionPayload;
           pendingWorkspaceFolderRef.current = codePayload.folderPath || null;
+          applyActiveWorkspacePath(codePayload.folderPath || null);
           const nextPrompt = typeof codePayload.prompt === 'string' ? codePayload.prompt.trim() : '';
           if (codePayload.model) {
             const nextModel = codePayload.model.trim();
@@ -1456,7 +1461,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
         } catch {
           pendingWorkspaceFolderRef.current = null;
         }
-      } else {
+      } else if (!embeddedInCodeWorkspace || !codeWorkspacePath) {
         pendingWorkspaceFolderRef.current = null;
       }
 
@@ -1501,7 +1506,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
         }
       }
     }
-  }, [isKnownNewChatModel, resetKey, resolveModelForNewChat]);
+  }, [applyActiveWorkspacePath, codeWorkspacePath, embeddedInCodeWorkspace, isKnownNewChatModel, resetKey, resolveModelForNewChat]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1660,7 +1665,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
           const buffConvId = activeId;
           getConversation(buffConvId).then(data => {
             if (viewingIdRef.current === buffConvId) {
-              setActiveWorkspacePath(data?.workspace_path || null);
+              applyActiveWorkspacePath(data?.workspace_path || null);
             }
             if (data?.model && viewingIdRef.current === buffConvId) {
               setCurrentModelString(isModelSelectable(data.model) ? data.model : resolveModelForNewChat(data.model));
@@ -1803,8 +1808,13 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
     setContextInfo(null);
     setActiveTasks(new Map());
     setCurrentModelString(resolveModelForNewChat());
-    setActiveWorkspacePath(null);
-  }, [activeId]);
+    if (embeddedInCodeWorkspace && codeWorkspacePath) {
+      pendingWorkspaceFolderRef.current = codeWorkspacePath;
+      applyActiveWorkspacePath(codeWorkspacePath);
+    } else {
+      applyActiveWorkspacePath(null);
+    }
+  }, [activeId, applyActiveWorkspacePath, codeWorkspacePath, embeddedInCodeWorkspace, resolveModelForNewChat]);
 
   const stopPolling = useCallback(() => {
     if (pollingRef.current) {
@@ -1953,7 +1963,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
       }
       // Restore research mode toggle
       setResearchMode(!!data.research_mode);
-      setActiveWorkspacePath(data.workspace_path || null);
+      applyActiveWorkspacePath(data.workspace_path || null);
       const normalizedMessages = (data.messages || []).map((msg: any) => {
         // Normalize attachment field names (some persisted records still use camelCase)
         if (msg.attachments && Array.isArray(msg.attachments)) {
@@ -2247,7 +2257,8 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
         rememberDefaultModel(modelForCreate);
         // 不传临时标题，让后端生成
         console.log("Creating conversation with model:", modelForCreate);
-        const workspaceFolder = pendingWorkspaceFolderRef.current;
+        const workspaceFolder = pendingWorkspaceFolderRef.current
+          || (embeddedInCodeWorkspace ? codeWorkspacePath || activeWorkspacePath : null);
         const newConv = await createConversation(undefined, modelForCreate, {
           research_mode: researchMode,
           ...(workspaceFolder ? { workspace: { mode: 'existing-folder' as const, folderPath: workspaceFolder } } : {}),
@@ -2281,7 +2292,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
           setCurrentModelString(newConv.model);
           rememberDefaultModel(newConv.model);
         }
-        setActiveWorkspacePath(newConv.workspace_path || workspaceFolder || null);
+        applyActiveWorkspacePath(newConv.workspace_path || workspaceFolder || null);
         setConversationTitle(newConv.title || 'New Chat');
 
         onNewChat(); // Refresh sidebar
@@ -3278,7 +3289,8 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
     if (!convId) {
       const modelForCreate = resolveModelForCreate();
       rememberDefaultModel(modelForCreate);
-      const workspaceFolder = pendingWorkspaceFolderRef.current;
+      const workspaceFolder = pendingWorkspaceFolderRef.current
+        || (embeddedInCodeWorkspace ? codeWorkspacePath || activeWorkspacePath : null);
       const newConv = await createConversation(undefined, modelForCreate, {
         research_mode: researchMode,
         ...(workspaceFolder ? { workspace: { mode: 'existing-folder' as const, folderPath: workspaceFolder } } : {}),
@@ -3465,9 +3477,29 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
   // --- Render Logic ---
 
   const closePlusMenu = () => {
+    if (plusSubmenuCloseTimerRef.current !== null) {
+      window.clearTimeout(plusSubmenuCloseTimerRef.current);
+      plusSubmenuCloseTimerRef.current = null;
+    }
     setShowPlusMenu(false);
     setShowSkillsSubmenu(false);
     setShowProjectsSubmenu(false);
+  };
+
+  const cancelPlusSubmenuClose = () => {
+    if (plusSubmenuCloseTimerRef.current !== null) {
+      window.clearTimeout(plusSubmenuCloseTimerRef.current);
+      plusSubmenuCloseTimerRef.current = null;
+    }
+  };
+
+  const schedulePlusSubmenuClose = () => {
+    cancelPlusSubmenuClose();
+    plusSubmenuCloseTimerRef.current = window.setTimeout(() => {
+      setShowSkillsSubmenu(false);
+      setShowProjectsSubmenu(false);
+      plusSubmenuCloseTimerRef.current = null;
+    }, 180);
   };
 
   const landingPlusMenuShellClass = "absolute left-0 top-full mt-2 z-50 w-[218px] rounded-[12px] border border-[rgba(31,31,30,0.3)] dark:border-white/15 bg-white dark:bg-claude-input px-[7px] pb-px pt-[7px] shadow-[0_2px_8px_rgba(0,0,0,0.08)]";
@@ -3478,6 +3510,8 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
     <div
       ref={plusMenuRef}
       className={landingPlusMenuShellClass}
+      onMouseEnter={cancelPlusSubmenuClose}
+      onMouseLeave={schedulePlusSubmenuClose}
     >
       <button
         onMouseEnter={() => { setShowSkillsSubmenu(false); setShowProjectsSubmenu(false); }}
@@ -3495,7 +3529,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
         <img src={plusMenuScreenshotIcon} alt="" aria-hidden="true" className="h-[20px] w-[20px] shrink-0 dark:invert dark:brightness-200" />
         <span className={landingPlusMenuTextClass}>Take a screenshot</span>
       </button>
-      <div className="relative" onMouseLeave={() => setShowProjectsSubmenu(false)}>
+      <div className="relative">
         <button
           onMouseEnter={() => { setShowProjectsSubmenu(true); setShowSkillsSubmenu(false); }}
           onClick={() => setShowProjectsSubmenu(prev => !prev)}
@@ -3545,7 +3579,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
         )}
       </div>
       <div className="mx-[8px] my-[7px] h-px bg-[rgba(31,31,30,0.15)] dark:bg-white/10" />
-      <div className="relative" onMouseLeave={() => setShowSkillsSubmenu(false)}>
+      <div className="relative">
         <button
           onMouseEnter={() => { setShowSkillsSubmenu(true); setShowProjectsSubmenu(false); }}
           onClick={() => setShowSkillsSubmenu(prev => !prev)}
@@ -3726,7 +3760,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
     return (
       <UnifiedLandingLayout
         title={welcomeGreeting}
-        icon={<IconCoworkSparkle size={32} />}
+        icon={<IconClaudeSparkle size={32} />}
         starterIdeas={
           <div className="w-[672px]">
             <div className="mb-[16px] flex items-center justify-center gap-[8px]">
@@ -3860,7 +3894,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
           <div className="flex w-[672px] flex-col items-center">
             <div className="mb-[28px] flex h-[60px] w-[672px] items-center justify-center gap-[12px]">
               <div className="flex h-[32px] w-[32px] items-center justify-center shrink-0">
-                <IconCoworkSparkle size={32} className="text-claude-accent" />
+                <IconClaudeSparkle size={32} className="text-claude-accent" />
               </div>
               <h1
                 className="whitespace-nowrap text-[#373734] dark:!text-[#d6cec3]"
@@ -3950,6 +3984,8 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                         <div
                           ref={plusMenuRef}
                           className={landingPlusMenuShellClass}
+                          onMouseEnter={cancelPlusSubmenuClose}
+                          onMouseLeave={schedulePlusSubmenuClose}
                         >
                           <button
                             onMouseEnter={() => { setShowSkillsSubmenu(false); setShowProjectsSubmenu(false); }}
@@ -3967,7 +4003,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                             <img src={plusMenuScreenshotIcon} alt="" aria-hidden="true" className="h-[20px] w-[20px] shrink-0 dark:invert dark:brightness-200" />
                             <span className={landingPlusMenuTextClass}>Take a screenshot</span>
                           </button>
-                          <div className="relative" onMouseLeave={() => setShowProjectsSubmenu(false)}>
+                          <div className="relative">
                             <button
                               onMouseEnter={() => { setShowProjectsSubmenu(true); setShowSkillsSubmenu(false); }}
                               onClick={() => setShowProjectsSubmenu(prev => !prev)}
@@ -4017,7 +4053,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                             )}
                           </div>
                           <div className="mx-[8px] my-[7px] h-px bg-[rgba(31,31,30,0.15)] dark:bg-white/10" />
-                          <div className="relative" onMouseLeave={() => setShowSkillsSubmenu(false)}>
+                          <div className="relative">
                             <button
                               onMouseEnter={() => { setShowSkillsSubmenu(true); setShowProjectsSubmenu(false); }}
                               onClick={() => setShowSkillsSubmenu(prev => !prev)}
@@ -4243,20 +4279,20 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
     : 'No workspace attached';
 
   return (
-    <div className={`flex-1 h-full flex flex-col overflow-clip text-claude-text chat-root chat-font-scope ${isCodeConversation ? 'bg-[#f6f4ef] dark:bg-[#1f1d1a]' : 'bg-claude-bg'}`}>
+    <div className={`flex-1 h-full min-h-0 flex flex-col overflow-clip text-claude-text chat-root chat-font-scope ${isCodeConversation ? 'bg-[#f6f4ef] dark:bg-[#1f1d1a]' : 'bg-claude-bg'} ${className}`}>
       {/* Content area - positioning container for scroll + bottom bars */}
       <div className="flex-1 min-h-0 relative">
         <div
           className="absolute inset-0 overflow-y-auto chat-scroll"
-          style={{ paddingBottom: `${inputHeight}px` }}
+          style={{ paddingBottom: `${embeddedInCodeWorkspace ? Math.max(96, inputHeight - 32) : inputHeight}px` }}
           ref={scrollContainerRef}
           onScroll={handleScroll}
         >
           <div
-            className="w-full mx-auto px-4 py-8 pb-2"
-            style={{ maxWidth: `${tunerConfig?.mainContentWidth || 768}px` }}
+            className={`w-full mx-auto px-4 pb-2 ${embeddedInCodeWorkspace ? 'py-4' : 'py-8'}`}
+            style={{ maxWidth: `${embeddedInCodeWorkspace ? '100%' : `${tunerConfig?.mainContentWidth || 768}px`}` }}
           >
-            {isCodeConversation && (
+            {isCodeConversation && !embeddedInCodeWorkspace && (
               <div className="mb-6 overflow-hidden rounded-[18px] border border-black/8 bg-white/88 shadow-[0_12px_36px_rgba(0,0,0,0.04)] backdrop-blur dark:border-white/10 dark:bg-[#24211d]/92">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-black/6 px-4 py-3 dark:border-white/10">
                   <div className="flex items-center gap-2">
@@ -4313,16 +4349,24 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
           </div>
         </div>
 
-        {/* 免责声明 - 固定在最底部 */}
-        <div className={`absolute bottom-0 left-0 z-10 flex items-center justify-center text-[12px] text-claude-textSecondary h-7 pointer-events-none font-sans ${isCodeConversation ? 'bg-[#f6f4ef] dark:bg-[#1f1d1a]' : 'bg-claude-bg'}`} style={{ right: `${scrollbarWidth}px` }}>
-          Claude is AI and can make mistakes. Please double-check responses.
-        </div>
+        {!embeddedInCodeWorkspace && (
+          <div className={`absolute bottom-0 left-0 z-10 flex h-7 items-center justify-center text-[12px] text-claude-textSecondary pointer-events-none font-sans ${isCodeConversation ? 'bg-[#f6f4ef] dark:bg-[#1f1d1a]' : 'bg-claude-bg'}`} style={{ right: `${scrollbarWidth}px` }}>
+            Claude is AI and can make mistakes. Please double-check responses.
+          </div>
+        )}
 
         {/* 输入框 - 浮动在内容上方，底部距离可调 */}
-        <div className="absolute left-0 right-0 z-20 pointer-events-none" style={{ bottom: `${inputBarBottom + 28}px`, paddingLeft: '16px', paddingRight: `${16 + scrollbarWidth}px` }}>
+        <div
+          className="absolute left-0 right-0 z-20 pointer-events-none"
+          style={{
+            bottom: `${inputBarBottom + (embeddedInCodeWorkspace ? 0 : 28)}px`,
+            paddingLeft: embeddedInCodeWorkspace ? '0px' : '16px',
+            paddingRight: embeddedInCodeWorkspace ? `${scrollbarWidth}px` : `${16 + scrollbarWidth}px`,
+          }}
+        >
           <div
             className="mx-auto pointer-events-auto"
-            style={{ maxWidth: `${inputBarWidth}px` }}
+            style={{ maxWidth: inputBarWidth }}
           >
             <div className="w-full relative group" ref={inputWrapperRef}>
               <input
@@ -4338,11 +4382,13 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
               />
               <div
                 className={`border transition-all duration-200 flex flex-col font-sans ${
-                  isCodeConversation
-                    ? 'bg-white/92 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur-xl hover:border-[#d8d2c8] focus-within:border-[#d8d2c8] dark:bg-[#24211d]/92 dark:hover:border-white/15 dark:focus-within:border-white/15'
+                  embeddedInCodeWorkspace
+                    ? 'border-x-0 border-b-0 border-t-[#e8e4dc] bg-[#fbfaf7] shadow-none dark:border-t-white/10 dark:bg-[#1f1f1d]'
+                    : isCodeConversation
+                      ? 'bg-white/92 shadow-[0_20px_60px_rgba(0,0,0,0.08)] backdrop-blur-xl hover:border-[#d8d2c8] focus-within:border-[#d8d2c8] dark:bg-[#24211d]/92 dark:hover:border-white/15 dark:focus-within:border-white/15'
                     : 'bg-white/92 dark:bg-[#24211d]/92 backdrop-blur-xl shadow-[0_20px_60px_rgba(0,0,0,0.08)] hover:border-[#d8d2c8] dark:hover:border-white/15 focus-within:border-[#d8d2c8] dark:focus-within:border-white/15'
-                } ${isDragging ? 'border-[#D97757] bg-orange-50/30' : 'border-transparent dark:border-transparent'}`}
-                style={{ borderRadius: `24px` }}
+                } ${isDragging ? 'border-[#D97757] bg-orange-50/30' : embeddedInCodeWorkspace ? '' : 'border-transparent dark:border-transparent'}`}
+                style={{ borderRadius: embeddedInCodeWorkspace ? '0px' : `${inputBarRadius}px` }}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
@@ -4351,12 +4397,12 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                 <div className="relative">
                   <SkillInputOverlay
                     text={inputText}
-                    className="px-4 pt-4 pb-0 text-[16px] font-sans font-[350]"
+                    className={`${embeddedInCodeWorkspace ? 'px-3 pt-2' : 'px-4 pt-4'} pb-0 text-[16px] font-sans font-[350]`}
                     style={{ height: `${inputBarBaseHeight}px`, minHeight: '16px', boxSizing: 'border-box', overflow: 'hidden' }}
                   />
                   <textarea
                     ref={inputRef}
-                    className={`w-full px-4 pt-4 pb-0 placeholder:text-claude-textSecondary text-[16px] outline-none resize-none bg-transparent font-sans font-[350] ${inputText.match(/^\/[a-zA-Z0-9_-]+/) ? 'text-transparent caret-claude-text' : 'text-claude-text'}`}
+                    className={`w-full ${embeddedInCodeWorkspace ? 'px-3 pt-2' : 'px-4 pt-4'} pb-0 placeholder:text-claude-textSecondary text-[16px] outline-none resize-none bg-transparent font-sans font-[350] ${inputText.match(/^\/[a-zA-Z0-9_-]+/) ? 'text-transparent caret-claude-text' : 'text-claude-text'}`}
                     style={{ height: `${inputBarBaseHeight}px`, minHeight: '16px', boxSizing: 'border-box', overflowY: 'hidden' }}
                     placeholder={selectedSkill ? `Describe what you want ${selectedSkill.name} to do...` : "How can I help you today?"}
                     value={inputText}
@@ -4390,7 +4436,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                     ))}
                   </div>
                 )}
-                  <div className="px-4 pb-3 pt-1 flex items-center justify-between">
+                  <div className={`${embeddedInCodeWorkspace ? 'px-3 pb-2 pt-0' : 'px-4 pb-3 pt-1'} flex items-center justify-between`}>
                     <div className="relative flex items-center">
                     <button
                       ref={plusBtnRef}
@@ -4403,6 +4449,8 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                       <div
                         ref={plusMenuRef}
                         className="absolute bottom-full left-0 mb-2 w-[220px] bg-claude-input border border-claude-border rounded-xl shadow-[0_4px_16px_rgba(0,0,0,0.12)] py-1.5 z-50"
+                        onMouseEnter={cancelPlusSubmenuClose}
+                        onMouseLeave={schedulePlusSubmenuClose}
                       >
                         <button
                           onMouseEnter={() => { setShowSkillsSubmenu(false); setShowProjectsSubmenu(false); }}
@@ -4427,7 +4475,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                           Add from GitHub
                         </button>
                         {/* Add to project submenu */}
-                        <div className="relative" onMouseLeave={() => setShowProjectsSubmenu(false)}>
+                        <div className="relative">
                           <button
                             onMouseEnter={() => { setShowProjectsSubmenu(true); setShowSkillsSubmenu(false); }}
                             onClick={() => setShowProjectsSubmenu(prev => !prev)}
@@ -4478,7 +4526,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                           )}
                         </div>
                         {/* Skills submenu */}
-                        <div className="relative" onMouseLeave={() => setShowSkillsSubmenu(false)}>
+                        <div className="relative">
                           <button
                             onMouseEnter={() => { setShowSkillsSubmenu(true); setShowProjectsSubmenu(false); }}
                             onClick={(e) => { e.stopPropagation(); setShowSkillsSubmenu(prev => !prev); }}
@@ -4629,7 +4677,7 @@ const MainContent = ({ onNewChat, resetKey, tunerConfig, onOpenDocument, onArtif
                     })()}
                   </div>
                     <div className="flex items-center gap-3">
-                    {isCodeConversation && (
+                    {isCodeConversation && !embeddedInCodeWorkspace && (
                       <div className="hidden sm:inline-flex h-[32px] items-center gap-2 rounded-[10px] border border-black/10 bg-[#faf8f4] px-3 text-[13px] text-[#4B4843] dark:border-white/10 dark:bg-[#201d19] dark:text-[#D7D0C4]">
                         <Folder size={14} className="text-claude-textSecondary" />
                         <span className="truncate max-w-[180px]">{workspaceLabel}</span>

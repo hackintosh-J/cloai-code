@@ -10,6 +10,7 @@ use crate::runtime;
 use crate::skills;
 use crate::streaming;
 use crate::uploads;
+use crate::workspace;
 use serde::Deserialize;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
@@ -37,6 +38,84 @@ pub(crate) struct SetRuntimeConfigPayload {
 #[serde(rename_all = "camelCase")]
 pub(crate) struct GetConversationsPayload {
     project_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceListPayload {
+    root: String,
+    path: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceReadFilePayload {
+    root: String,
+    path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceWriteFilePayload {
+    root: String,
+    path: String,
+    content: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceCreateEntryPayload {
+    root: String,
+    parent: Option<String>,
+    name: String,
+    kind: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceDeletePathPayload {
+    root: String,
+    path: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceRenamePathPayload {
+    root: String,
+    path: String,
+    new_name: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceGitRootPayload {
+    root: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceGitDiffPayload {
+    root: String,
+    path: Option<String>,
+    staged: Option<bool>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub(crate) struct WorkspaceGitStagePayload {
+    root: String,
+    path: String,
+    staged: bool,
+}
+
+async fn run_workspace_blocking<T, F>(task: F) -> Result<T, String>
+where
+    T: Send + 'static,
+    F: FnOnce() -> Result<T, String> + Send + 'static,
+{
+    tauri::async_runtime::spawn_blocking(task)
+        .await
+        .map_err(|error| format!("Workspace task failed: {error}"))?
 }
 
 #[tauri::command]
@@ -117,6 +196,81 @@ pub(crate) fn show_item_in_folder(app: AppHandle, file_path: String) -> Result<b
     }
 
     Ok(false)
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_list_entries(
+    payload: WorkspaceListPayload,
+) -> Result<workspace::WorkspaceDirectoryListing, String> {
+    run_workspace_blocking(move || workspace::list_entries(payload.root, payload.path)).await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_read_file(
+    payload: WorkspaceReadFilePayload,
+) -> Result<workspace::WorkspaceFileContent, String> {
+    run_workspace_blocking(move || workspace::read_file(payload.root, payload.path)).await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_read_file_data_url(
+    payload: WorkspaceReadFilePayload,
+) -> Result<workspace::WorkspaceFileDataUrl, String> {
+    run_workspace_blocking(move || workspace::read_file_data_url(payload.root, payload.path)).await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_write_file(
+    payload: WorkspaceWriteFilePayload,
+) -> Result<workspace::WorkspaceFileContent, String> {
+    run_workspace_blocking(move || workspace::write_file(payload.root, payload.path, payload.content))
+        .await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_create_entry(
+    payload: WorkspaceCreateEntryPayload,
+) -> Result<workspace::WorkspaceEntry, String> {
+    run_workspace_blocking(move || {
+        workspace::create_entry(payload.root, payload.parent, payload.name, payload.kind)
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_delete_path(payload: WorkspaceDeletePathPayload) -> Result<bool, String> {
+    run_workspace_blocking(move || workspace::delete_path(payload.root, payload.path)).await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_rename_path(
+    payload: WorkspaceRenamePathPayload,
+) -> Result<workspace::WorkspaceEntry, String> {
+    run_workspace_blocking(move || workspace::rename_path(payload.root, payload.path, payload.new_name))
+        .await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_git_status(
+    payload: WorkspaceGitRootPayload,
+) -> Result<workspace::WorkspaceGitStatus, String> {
+    run_workspace_blocking(move || workspace::git_status(payload.root)).await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_git_diff(
+    payload: WorkspaceGitDiffPayload,
+) -> Result<workspace::WorkspaceGitDiff, String> {
+    run_workspace_blocking(move || {
+        workspace::git_diff(payload.root, payload.path, payload.staged.unwrap_or(false))
+    })
+    .await
+}
+
+#[tauri::command]
+pub(crate) async fn workspace_git_stage(payload: WorkspaceGitStagePayload) -> Result<bool, String> {
+    run_workspace_blocking(move || workspace::git_stage(payload.root, payload.path, payload.staged))
+        .await
 }
 
 #[tauri::command]

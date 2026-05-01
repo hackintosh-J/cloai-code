@@ -14,7 +14,6 @@ import type { DocumentInfo } from '../../components/DocumentCard';
 import ChatsPage from '../../components/ChatsPage';
 import CustomizePage from '../../components/CustomizePage';
 import ProjectsPage from '../../components/ProjectsPage';
-import CoworkPage, { type CoworkLaunchPayload } from '../../components/CoworkPage';
 import ScheduledPage from '../../components/ScheduledPage';
 import {
   desktopConfigExists,
@@ -47,9 +46,10 @@ const AppLayout = () => {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [runtimeSetupReady, setRuntimeSetupReady] = useState<boolean | null>(null);
   const [needsGitBash, setNeedsGitBash] = useState(false);
+  const [codeWorkspacePath, setCodeWorkspacePath] = useState<string | null>(null);
+  const [codeLaunchRequest, setCodeLaunchRequest] = useState<CodeLaunchPayload & { requestId: number } | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const isCoworkContext = location.pathname.startsWith('/cowork');
   const isCodeContext = location.pathname.startsWith('/code');
 
   // Check for git-bash on Windows (required by Claude Code SDK)
@@ -108,9 +108,9 @@ const AppLayout = () => {
   const contentContainerRef = useRef<HTMLDivElement>(null);
 
   // Detect macOS for traffic light padding
-  const [isMac, setIsMac] = useState(false);
+  const [isMac, setIsMac] = useState(() => navigator.platform.toLowerCase().includes('mac'));
   useEffect(() => {
-    getDesktopPlatform().then((platform) => setIsMac(platform === 'darwin'));
+    getDesktopPlatform().then((platform) => setIsMac(platform === 'darwin')).catch(() => {});
   }, []);
 
   // Title bar height adjusts inversely to zoom so it stays visually constant
@@ -120,48 +120,6 @@ const AppLayout = () => {
       setTitleBarHeight(Math.round(44 / factor));
     });
   }, []);
-
-  // Navigation history for back/forward buttons
-  const [navHistory, setNavHistory] = useState<string[]>([location.pathname + location.search + location.hash]);
-  const [navIndex, setNavIndex] = useState(0);
-  const isNavAction = useRef(false);
-
-  useEffect(() => {
-    const fullPath = location.pathname + location.search;
-    if (isNavAction.current) {
-      isNavAction.current = false;
-      return;
-    }
-    setNavHistory(prev => {
-      const trimmed = prev.slice(0, navIndex + 1);
-      if (trimmed[trimmed.length - 1] === fullPath) return trimmed;
-      return [...trimmed, fullPath];
-    });
-    setNavIndex(prev => {
-      const trimmed = navHistory.slice(0, prev + 1);
-      if (trimmed[trimmed.length - 1] === fullPath) return prev;
-      return trimmed.length;
-    });
-  }, [location.pathname, location.search]);
-
-  const canGoBack = navIndex > 0;
-  const canGoForward = navIndex < navHistory.length - 1;
-
-  const handleNavBack = () => {
-    if (!canGoBack) return;
-    isNavAction.current = true;
-    const newIndex = navIndex - 1;
-    setNavIndex(newIndex);
-    navigate(navHistory[newIndex]);
-  };
-
-  const handleNavForward = () => {
-    if (!canGoForward) return;
-    isNavAction.current = true;
-    const newIndex = navIndex + 1;
-    setNavIndex(newIndex);
-    navigate(navHistory[newIndex]);
-  };
 
   useEffect(() => {
     setShowSettings(false);
@@ -181,6 +139,12 @@ const AppLayout = () => {
   useEffect(() => {
     // Intentionally empty: do not collapse left sidebar automatically
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (isCodeContext) {
+      setIsSidebarCollapsed(true);
+    }
+  }, [isCodeContext]);
 
   const isDesktop = isDesktopApp();
   useEffect(() => {
@@ -267,22 +231,20 @@ const AppLayout = () => {
     setShowArtifacts(false);
   };
 
-  const handleCoworkStart = (payload: CoworkLaunchPayload) => {
-    if (!payload.prompt.trim()) return;
-    sessionStorage.setItem('cowork_launch_payload_v1', JSON.stringify(payload));
-    handleNewChat();
-    navigate('/cowork/new');
-  };
-
   const handleCodeStart = ({ folderPath, prompt, model }: CodeLaunchPayload) => {
-    if (!folderPath || !prompt.trim()) return;
-    sessionStorage.setItem('code_launch_payload_v1', JSON.stringify({
-      folderPath,
-      prompt: prompt.trim(),
+    const nextFolderPath = folderPath.trim();
+    const nextPrompt = typeof prompt === 'string' ? prompt.trim() : '';
+    if (!nextFolderPath) return;
+    setCodeWorkspacePath(nextFolderPath);
+    setCodeLaunchRequest({
+      requestId: Date.now(),
+      folderPath: nextFolderPath,
+      prompt: nextPrompt || undefined,
       model: model || undefined,
-    }));
-    handleNewChat();
-    navigate('/code/new');
+    });
+    if (!location.pathname.startsWith('/code')) {
+      navigate('/code');
+    }
   };
 
   const handleOpenDocument = useCallback((doc: DocumentInfo) => {
@@ -365,7 +327,6 @@ const AppLayout = () => {
 
   const handleSelectMode = (mode: AppMode) => {
     if (mode === 'chat') navigate('/');
-    if (mode === 'cowork') navigate('/cowork');
     if (mode === 'code') navigate('/code');
   };
 
@@ -377,13 +338,10 @@ const AppLayout = () => {
     !showUpgrade &&
     location.pathname !== '/chats' &&
     location.pathname !== '/customize' &&
-    location.pathname !== '/cowork/customize' &&
     location.pathname !== '/code/customize' &&
     location.pathname !== '/projects' &&
-    location.pathname !== '/cowork/projects' &&
     location.pathname !== '/code/projects' &&
     location.pathname !== '/artifacts' &&
-    !location.pathname.startsWith('/cowork') &&
     location.pathname !== '/scheduled' &&
     !location.pathname.startsWith('/code');
 
@@ -397,6 +355,24 @@ const AppLayout = () => {
       onOpenArtifacts={handleOpenArtifacts}
       onTitleChange={handleTitleChange}
       onChatModeChange={handleChatModeChange}
+    />
+  );
+
+  const codeChatPane = (
+    <MainContent
+      onNewChat={refreshSidebar}
+      resetKey={newChatKey}
+      tunerConfig={{ ...tunerConfig, mainContentWidth: 640, mainContentMt: 0 }}
+      onOpenDocument={handleOpenDocument}
+      onArtifactsUpdate={handleArtifactsUpdate}
+      onOpenArtifacts={handleOpenArtifacts}
+      onTitleChange={handleTitleChange}
+      onChatModeChange={handleChatModeChange}
+      embeddedInCodeWorkspace
+      codeWorkspacePath={codeWorkspacePath}
+      codeLaunchRequest={codeLaunchRequest}
+      onWorkspacePathChange={setCodeWorkspacePath}
+      className="bg-transparent"
     />
   );
 
@@ -434,11 +410,7 @@ const AppLayout = () => {
           titleBarHeight={titleBarHeight}
           isMac={isMac}
           isSidebarCollapsed={isSidebarCollapsed}
-          canGoBack={canGoBack}
-          canGoForward={canGoForward}
           onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-          onNavBack={handleNavBack}
-          onNavForward={handleNavForward}
           onSelectMode={handleSelectMode}
         />
 
@@ -469,6 +441,14 @@ const AppLayout = () => {
           )}
 
           <div className="flex-1 flex overflow-hidden relative" ref={contentContainerRef}>
+            {documentPanelDoc && (
+              <div
+                className="absolute top-0 bottom-0 z-[80] h-full w-[16px] -translate-x-1/2 overflow-visible"
+                style={{ left: `${100 - documentPanelWidth}%` }}
+              >
+                <DraggableDivider onResize={setDocumentPanelWidth} containerRef={contentContainerRef} />
+              </div>
+            )}
 
             {/* Main Content Area - takes remaining width after panel */}
             <div className="flex-1 flex flex-col h-full min-w-0">
@@ -491,20 +471,16 @@ const AppLayout = () => {
                   <UpgradePlan onClose={() => setShowUpgrade(false)} />
                 ) : location.pathname === '/chats' ? (
                   <ChatsPage />
-                ) : location.pathname === '/customize' || location.pathname === '/cowork/customize' || location.pathname === '/code/customize' ? (
+                ) : location.pathname === '/customize' || location.pathname === '/code/customize' ? (
                   <CustomizePage onCreateWithClaude={() => {
                     sessionStorage.setItem('prefill_input', '让我们一起使用你的 skill-creator skill 来创建一个 skill 吧。请先问我这个 skill 应该做什么。');
                     handleNewChat();
-                    navigate(isCoworkContext ? '/cowork' : isCodeContext ? '/code' : '/');
+                    navigate(isCodeContext ? '/code' : '/');
                   }} />
-                ) : location.pathname === '/projects' || location.pathname === '/cowork/projects' || location.pathname === '/code/projects' ? (
+                ) : location.pathname === '/projects' || location.pathname === '/code/projects' ? (
                   <ProjectsPage />
-                ) : location.pathname === '/cowork' ? (
-                  <CoworkPage onStartTask={handleCoworkStart} />
-                ) : location.pathname === '/code' ? (
-                  <CodePage onStart={handleCodeStart} />
                 ) : location.pathname === '/scheduled' ? (
-                  <ScheduledPage onNewTask={() => navigate('/cowork')} />
+                  <ScheduledPage onNewTask={() => navigate('/')} />
                 ) : location.pathname === '/artifacts' ? (
                   <ArtifactsPage onTryPrompt={(prompt) => {
                     if (prompt === '__remix__') {
@@ -515,8 +491,14 @@ const AppLayout = () => {
                     handleNewChat();
                     window.location.hash = '#/';
                   }} />
-                ) : location.pathname.startsWith('/cowork/') || location.pathname.startsWith('/code/') ? (
-                  mainContent
+                ) : location.pathname.startsWith('/code') ? (
+                  <CodePage
+                    onStart={handleCodeStart}
+                    chatPane={codeChatPane}
+                    initialFolderPath={codeWorkspacePath}
+                    onFolderPathChange={setCodeWorkspacePath}
+                    forceWorkbench={location.pathname !== '/code' || !!codeWorkspacePath}
+                  />
                 ) : (
                   mainContent
                 )}
@@ -532,11 +514,6 @@ const AppLayout = () => {
                 overflow: 'hidden'
               }}
             >
-              {documentPanelDoc && (
-                <div className="absolute left-0 top-0 bottom-0 h-full z-50">
-                  <DraggableDivider onResize={setDocumentPanelWidth} containerRef={contentContainerRef} />
-                </div>
-              )}
               <div className={`w-full h-full flex relative min-w-0 overflow-hidden`}>
                 {(documentPanelDoc || showArtifacts) && (
                   <>

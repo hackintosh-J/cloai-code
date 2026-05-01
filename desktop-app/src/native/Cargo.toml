@@ -1,6 +1,6 @@
 [package]
 name = "cloai-desktop-native"
-version = "0.0.2"
+version = "0.0.3"
 description = "Cloai desktop native shell"
 authors = ["cloai"]
 edition = "2021"

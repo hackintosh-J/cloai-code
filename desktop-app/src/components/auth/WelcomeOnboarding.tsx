@@ -11,6 +11,7 @@ import {
   Wrench,
 } from 'lucide-react'
 import ClaudeLogo from '@/src/components/ClaudeLogo'
+import WindowControls from '@/src/app/layout/WindowControls'
 import {
   getDesktopPreferences,
   getDesktopPlatform,
@@ -73,6 +74,13 @@ const PLATFORM_RUNTIME_GUIDE: Record<string, string[]> = {
 function detectPlatformKey(platform: string) {
   if (platform === 'darwin' || platform === 'macos') return 'macos'
   if (platform === 'linux') return 'linux'
+  return 'windows'
+}
+
+function detectInitialPlatformKey() {
+  const platform = navigator.platform.toLowerCase()
+  if (platform.includes('mac')) return 'macos'
+  if (platform.includes('linux')) return 'linux'
   return 'windows'
 }
 
@@ -212,7 +220,7 @@ function RuntimeAccordion({
 }
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
-  const [platform, setPlatform] = useState('windows')
+  const [platform, setPlatform] = useState(detectInitialPlatformKey)
   const [theme, setTheme] = useState<ThemeChoice>('system')
   const [step, setStep] = useState<'runtime' | 'theme'>('runtime')
   const [status, setStatus] = useState<RuntimeSetupStatus | null>(null)
@@ -385,6 +393,11 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       `}</style>
 
       <div className="absolute top-0 left-0 right-0 h-[44px] z-10" style={{ WebkitAppRegion: 'drag' } as React.CSSProperties} />
+      {platform !== 'macos' && (
+        <div className="absolute right-0 top-0 z-20 h-[44px]">
+          <WindowControls />
+        </div>
+      )}
       <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse 540px 380px at 50% 22%, rgba(0, 0, 0, 0.018) 0%, transparent 72%)' }} />
 
       <div className="flex-1 min-h-0 overflow-y-auto px-6 py-10 relative onboarding-enter">

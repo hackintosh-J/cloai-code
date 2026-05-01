@@ -11,4 +11,4 @@ export * from './skills'
 export * from './github'
 export * from './streaming'
 export * from './code'
-
+export * from './workspace'

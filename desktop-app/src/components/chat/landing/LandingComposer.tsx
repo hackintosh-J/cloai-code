@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { ArrowUp } from 'lucide-react';
-import { IconCoworkSparkle } from '@/src/components/Icons';
+import { IconClaudeSparkle } from '@/src/components/Icons';
 import FileUploadPreview, { PendingFile } from '@/src/components/FileUploadPreview';
 import ModelSelector, { type SelectableModel } from '@/src/components/ModelSelector';
 import inputPlusIcon from '@/assets/home/composer/input-plus.svg';
@@ -98,7 +98,7 @@ const ChatLandingPage: React.FC<ChatLandingPageProps> = ({
             }`}
           >
             <div className="flex h-[32px] w-[32px] items-center justify-center shrink-0 transition-transform duration-500 hover:scale-110 hover:rotate-12">
-              <IconCoworkSparkle size={32} className="text-claude-accent" />
+              <IconClaudeSparkle size={32} className="text-claude-accent" />
             </div>
             <h1
               className="whitespace-nowrap text-[#373734] dark:!text-[#d6cec3]"

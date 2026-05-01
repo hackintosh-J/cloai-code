@@ -50,19 +50,11 @@ pub(crate) struct ProjectFileRecord {
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
-struct MessageRecord {
-    #[serde(default)]
-    #[serde(alias = "conversationId")]
-    conversation_id: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
-#[serde(rename_all = "snake_case")]
 struct DesktopDb {
     #[serde(default)]
     conversations: Vec<ConversationRecord>,
     #[serde(default)]
-    messages: Vec<MessageRecord>,
+    messages: Vec<Value>,
     #[serde(default)]
     projects: Vec<ProjectRecord>,
     #[serde(default)]
@@ -311,6 +303,13 @@ fn project_summary(db: &DesktopDb, project: &ProjectRecord) -> ProjectSummary {
     }
 }
 
+fn message_conversation_id(message: &Value) -> Option<&str> {
+    message
+        .get("conversation_id")
+        .or_else(|| message.get("conversationId"))
+        .and_then(Value::as_str)
+}
+
 pub(crate) fn list_projects() -> Result<Vec<ProjectSummary>, String> {
     let db = read_db()?;
     let mut projects: Vec<ProjectSummary> = db
@@ -556,8 +555,15 @@ pub(crate) fn delete_project(id: String) -> Result<Value, String> {
                 .filter(|conversation| conversation.project_id.as_deref() == Some(id.as_str()))
                 .map(|conversation| conversation.id.clone())
                 .collect();
-            db.messages
-                .retain(|message| !conversation_ids.contains(&message.conversation_id));
+            db.messages.retain(|message| {
+                message_conversation_id(message)
+                    .map(|conversation_id| {
+                        !conversation_ids
+                            .iter()
+                            .any(|id| id.as_str() == conversation_id)
+                    })
+                    .unwrap_or(true)
+            });
             db.conversations
                 .retain(|conversation| conversation.project_id.as_deref() != Some(id.as_str()));
             db.projects.retain(|project| project.id != id);

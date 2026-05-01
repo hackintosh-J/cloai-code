@@ -14,15 +14,12 @@ import {
   IconPencil,
   IconTrash
 } from '@/src/components/Icons';
-import { CalendarDays, Send as DispatchIcon, Pin, Sparkles } from 'lucide-react';
+import { Sparkles } from 'lucide-react';
 import claudeImg from '@/assets/branding/claude-mark.png';
 import searchIconImg from '@/assets/navigation/app-shell/search.png';
-import customizeIconImg from '@/assets/customization/landing/customize-icon.png';
-import figmaProjectsIcon from '@/assets/navigation/sidebar/classic/projects.svg';
 import figmaScheduledIcon from '@/assets/navigation/sidebar/classic/scheduled.svg';
 import figmaCustomizeIcon from '@/assets/navigation/sidebar/classic/customize.svg';
 import figmaDispatchIcon from '@/assets/navigation/sidebar/classic/dispatch.svg';
-import coworkNewTaskIcon from '@/assets/navigation/sidebar/cowork/new-task-plus.svg';
 import recentConversationRingIcon from '@/assets/navigation/sidebar/shared/recent-conversation-ring.svg';
 import { NAV_ITEMS } from '@/src/components/navigation/navigationConstants';
 import { ChevronUp } from 'lucide-react';
@@ -123,10 +120,20 @@ const RenameModal = ({ isOpen, onClose, onSave, initialTitle }: RenameModalProps
   );
 };
 
+const getChatWorkspacePath = (chat: any) => {
+  const path = chat?.workspace_path || chat?.workspacePath;
+  return typeof path === 'string' ? path.trim() : '';
+};
+
+const formatWorkspaceSubtitle = (workspacePath: string) => {
+  const normalized = workspacePath.replace(/\\/g, '/').replace(/\/+$/, '');
+  const basename = normalized.split('/').filter(Boolean).pop() || normalized || workspacePath;
+  return normalized && normalized !== basename ? `${basename} - ${normalized}` : basename;
+};
+
 const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, onOpenSettings, onOpenUpgrade, onCloseOverlays, tunerConfig, setTunerConfig }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const codeJumpUrl = ((import.meta as any).env?.VITE_CODE_JUMP_URL || '/code/').trim();
   const [chats, setChats] = useState<any[]>([]);
   const [activeMenuIndex, setActiveMenuIndex] = useState<number | null>(null);
   const [menuPosition, setMenuPosition] = useState<{ top: number, left: number } | null>(null);
@@ -186,17 +193,16 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
     }
   };
 
-  const isCoworkSection = location.pathname.startsWith('/cowork') || location.pathname === '/scheduled';
   const isCodeSection = location.pathname.startsWith('/code');
-  const conversationPath = (id: string) => isCoworkSection ? `/cowork/${id}` : isCodeSection ? `/code/${id}` : `/chat/${id}`;
-  const projectsPath = isCoworkSection ? '/cowork/projects' : isCodeSection ? '/code/projects' : '/projects';
-  const customizePath = isCoworkSection ? '/cowork/customize' : isCodeSection ? '/code/customize' : '/customize';
+  const conversationPath = (id: string) => isCodeSection ? `/code/${id}` : `/chat/${id}`;
+  const projectsPath = isCodeSection ? '/code/projects' : '/projects';
+  const customizePath = isCodeSection ? '/code/customize' : '/customize';
 
   const handleNewChat = () => {
     setIsNewChatAnimating(true);
     setTimeout(() => setIsNewChatAnimating(false), 300);
     if (onNewChatClick) onNewChatClick();
-    navigate(isCoworkSection ? '/cowork' : isCodeSection ? '/code' : '/');
+    navigate(isCodeSection ? '/code' : '/');
   };
 
   const updateTuner = (key: string, value: number) => {
@@ -219,7 +225,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
       return;
     }
     if (label === 'Code') {
-      // Disabled temporarily
+      navigate('/code');
       return;
     }
   };
@@ -349,7 +355,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
       setChats(chats.filter(c => c.id !== id));
       setActiveMenuIndex(null);
       if (location.pathname === conversationPath(id)) {
-        navigate(isCoworkSection ? '/cowork' : isCodeSection ? '/code' : '/');
+        navigate(isCodeSection ? '/code' : '/');
       }
     } catch (err) {
       console.error(err);
@@ -460,7 +466,23 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
     setShowUserMenu(!showUserMenu);
   };
   const standardSidebarWidth = `${tunerConfig?.sidebarWidth || 280}px`;
-  const sidebarWidth = isCollapsed ? '46px' : standardSidebarWidth;
+  const collapsedSidebarWidth = 46;
+  const sidebarOuterPadding = 7;
+  const sidebarIconSlot = 32;
+  const sidebarWidth = isCollapsed ? `${collapsedSidebarWidth}px` : standardSidebarWidth;
+  const sidebarButtonStyle = {
+    height: `${sidebarIconSlot}px`,
+    paddingLeft: '0px',
+    paddingRight: '0px',
+  };
+  const sidebarIconSlotStyle = {
+    width: `${sidebarIconSlot}px`,
+    height: `${sidebarIconSlot}px`,
+  };
+  const avatarSize = isCollapsed ? 28 : (tunerConfig?.userAvatarSize || 32);
+  const sidebarLabelClass = `leading-none transition-[opacity,width] duration-200 text-left overflow-hidden ${
+    isCollapsed ? 'opacity-0 w-0' : 'opacity-100 w-auto'
+  }`;
 
   const profileMenuSections = [
     [
@@ -562,8 +584,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
           className="flex-shrink-0"
           style={{
             marginTop: isCollapsed ? '58px' : '52px',
-            paddingLeft: '9px',
-            paddingRight: '9px',
+            paddingLeft: `${sidebarOuterPadding}px`,
+            paddingRight: `${sidebarOuterPadding}px`,
             marginBottom: '2px'
           }}
         >
@@ -571,38 +593,21 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
             onClick={handleNewChat}
             className="w-full flex items-center justify-start text-claude-text hover:bg-claude-hover rounded-lg transition-colors group overflow-hidden whitespace-nowrap"
             style={{
-              paddingTop: '2px',
-              paddingBottom: '2px',
-              paddingLeft: '0px',
+              ...sidebarButtonStyle,
               gap: '8px'
             }}
           >
-            <div className={`text-claude-text flex-shrink-0 flex items-center justify-center`} style={{ width: '20px', height: '20px' }}>
-              {isCoworkSection ? (
-                <img
-                  src={coworkNewTaskIcon}
-                  alt=""
-                  width={16}
-                  height={16}
-                  className={`dark:invert transition-all duration-200 group-hover:brightness-90 ${isNewChatAnimating ? "rotate-90 scale-100" : "group-hover:scale-110 group-hover:-rotate-3"}`}
-                />
-              ) : isCodeSection ? (
-                <IconPlusCircle
-                  size={27}
-                  className={`transition-all duration-200 group-hover:brightness-90 ${isNewChatAnimating ? "rotate-90 scale-100" : "group-hover:scale-110 group-hover:-rotate-3"}`}
-                />
-              ) : (
-                <IconPlusCircle
-                  size={27}
-                  className={`transition-all duration-200 group-hover:brightness-90 ${isNewChatAnimating ? "rotate-90 scale-100" : "group-hover:scale-110 group-hover:-rotate-3"}`}
-                />
-              )}
+            <div className="text-claude-text flex-shrink-0 flex items-center justify-center" style={sidebarIconSlotStyle}>
+              <IconPlusCircle
+                size={27}
+                className={`transition-all duration-200 group-hover:brightness-90 ${isNewChatAnimating ? "rotate-90 scale-100" : "group-hover:scale-110 group-hover:-rotate-3"}`}
+              />
             </div>
             <span
-              className={`leading-none transition-opacity duration-200 text-left ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 block'}`}
+              className={sidebarLabelClass}
               style={{ fontSize: '14px', fontWeight: 400 }}
             >
-              {isCoworkSection ? 'New task' : isCodeSection ? 'New session' : 'New chat'}
+              New chat
             </span>
           </button>
         </div>
@@ -612,8 +617,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
           className="flex-shrink-0"
           style={{
             marginTop: '2px',
-            paddingLeft: '9px',
-            paddingRight: '9px',
+            paddingLeft: `${sidebarOuterPadding}px`,
+            paddingRight: `${sidebarOuterPadding}px`,
             marginBottom: '2px'
           }}
         >
@@ -621,13 +626,11 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
             onClick={() => setShowSearch(true)}
             className="w-full flex items-center justify-start text-claude-text hover:bg-claude-hover rounded-lg transition-colors group overflow-hidden whitespace-nowrap"
             style={{
-              paddingTop: '2px',
-              paddingBottom: '2px',
-              paddingLeft: '0px',
+              ...sidebarButtonStyle,
               gap: '8px'
             }}
           >
-            <div className={`text-claude-text flex-shrink-0 flex items-center justify-center`} style={{ width: '27px', height: '27px' }}>
+            <div className="text-claude-text flex-shrink-0 flex items-center justify-center" style={sidebarIconSlotStyle}>
               <img
                 src={searchIconImg}
                 alt="Search"
@@ -636,47 +639,10 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
               />
             </div>
             <span
-              className={`leading-none transition-opacity duration-200 text-left ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 block'}`}
+              className={sidebarLabelClass}
               style={{ fontSize: '14px', fontWeight: 400 }}
             >
               Search
-            </span>
-          </button>
-        </div>
-
-        {/* Customize - Fixed */}
-        <div
-          className="flex-shrink-0"
-          style={{
-            marginTop: '2px',
-            paddingLeft: '9px',
-            paddingRight: '9px',
-            marginBottom: '16px'
-          }}
-        >
-          <button
-            onClick={() => navigate(customizePath)}
-            className={`w-full flex items-center justify-start text-claude-text hover:bg-claude-hover rounded-lg transition-colors group overflow-hidden whitespace-nowrap ${location.pathname === customizePath ? 'bg-claude-hover' : ''}`}
-            style={{
-              paddingTop: '2px',
-              paddingBottom: '2px',
-              paddingLeft: '0px',
-              gap: '8px'
-            }}
-          >
-            <div className={`text-claude-text flex-shrink-0 flex items-center justify-center`} style={{ width: '27px', height: '27px' }}>
-              <img
-                src={customizeIconImg}
-                alt="Customize"
-                style={{ width: '24px', height: '24px' }}
-                className="object-contain dark:invert transition-all duration-200 group-hover:brightness-90 group-hover:scale-110 group-hover:-rotate-3 group-active:rotate-12 group-active:scale-90"
-              />
-            </div>
-            <span
-              className={`leading-none transition-opacity duration-200 text-left ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 block'}`}
-              style={{ fontSize: '14px', fontWeight: 400 }}
-            >
-              Customize
             </span>
           </button>
         </div>
@@ -686,46 +652,36 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
           ref={scrollRef}
           className="flex-1 overflow-y-auto sidebar-scroll min-h-0 pb-6"
           style={{
-            paddingLeft: '9px',
-            paddingRight: '9px',
+            paddingLeft: `${sidebarOuterPadding}px`,
+            paddingRight: `${sidebarOuterPadding}px`,
             paddingTop: '0px'
           }}
         >
 
           {/* Navigation Links */}
           <nav className="space-y-px mb-6">
-            {(isCoworkSection
-              ? [
-                  { label: 'Projects', icon: <img src={figmaProjectsIcon} alt="" width={18} height={17} className="dark:invert transition-[filter] duration-200" />, onClick: () => navigate(projectsPath), active: location.pathname === projectsPath },
-                  { label: 'Scheduled', icon: <img src={figmaScheduledIcon} alt="" width={18} height={18} className="dark:invert transition-[filter] duration-200" />, onClick: () => navigate('/scheduled'), active: location.pathname === '/scheduled' },
-                  { label: 'Customize', icon: <img src={figmaCustomizeIcon} alt="" width={18} height={16} className="dark:invert transition-[filter] duration-200" />, onClick: () => navigate(customizePath), active: location.pathname === customizePath },
-                  { label: 'Dispatch', icon: <img src={figmaDispatchIcon} alt="" width={12} height={18} className="dark:invert transition-[filter] duration-200" />, onClick: undefined, active: false },
-                ]
-              : NAV_ITEMS.map((item) => ({
-                  label: item.label,
-                  icon: <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#121212] transition-colors">{getIcon(item.label, 20)}</div>,
-                  onClick: () => handleNavClick(item.label),
-                  active: (location.pathname === '/chats' && item.label === 'Chats') || (location.pathname === projectsPath && item.label === 'Projects') || (location.pathname === '/artifacts' && item.label === 'Artifacts'),
-                }))
-            ).map((item) => (
+            {NAV_ITEMS.filter(item => item.label !== 'Artifacts').map((item) => (
               <button
                 key={item.label}
-                onClick={item.onClick}
-                disabled={!item.onClick}
-                className={`group flex h-8 w-full items-center justify-start overflow-hidden whitespace-nowrap rounded-[6px] text-[#373734] dark:text-claude-text transition-colors hover:bg-claude-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent ${item.active ? 'bg-claude-hover' : ''}`}
+                onClick={() => handleNavClick(item.label)}
+                className={`group flex h-8 w-full items-center justify-start overflow-hidden whitespace-nowrap rounded-[6px] text-[#373734] dark:text-claude-text transition-colors hover:bg-claude-hover ${
+                  (location.pathname === '/chats' && item.label === 'Chats') || (location.pathname === projectsPath && item.label === 'Projects')
+                    ? 'bg-claude-hover'
+                    : ''
+                }`}
                 style={{
                   columnGap: '12px',
                   fontFamily: '"Anthropic Sans", "Figtree", sans-serif',
                   fontWeight: 400,
-                  paddingLeft: '8px',
-                  paddingRight: '8px'
+                  paddingLeft: '0px',
+                  paddingRight: '0px'
                 }}
               >
-                <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#121212] dark:text-claude-text transition-colors">
-                  {item.icon}
+                <div className="flex flex-shrink-0 items-center justify-center text-[#121212] dark:text-claude-text transition-colors" style={sidebarIconSlotStyle}>
+                  <div className="flex h-5 w-5 flex-shrink-0 items-center justify-center text-[#121212] transition-colors">{getIcon(item.label, 20)}</div>
                 </div>
                 <span
-                  className={`leading-none transition-opacity duration-200 text-left ${isCollapsed ? 'opacity-0 w-0 hidden' : 'opacity-100 block'}`}
+                  className={sidebarLabelClass}
                   style={{
                     fontFamily: '"Anthropic Sans", "Figtree", sans-serif',
                     fontSize: '14px',
@@ -739,26 +695,51 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
             ))}
           </nav>
 
-          {/* Cowork: Pinned section */}
-          {isCoworkSection && !isCollapsed && (
-            <div className="mb-4">
+          <div className="mb-6">
+            {!isCollapsed ? (
               <div
-                className="flex items-center gap-2 px-3 pb-2 select-none"
+                className="flex items-center gap-2 px-3 pb-2 select-none opacity-100 transition-opacity duration-200"
                 style={{ paddingLeft: `${tunerConfig?.recentsPl || 12}px`, paddingRight: '12px' }}
               >
-                <span className="text-[13px] font-medium text-claude-textSecondary">Pinned</span>
+                <span className="text-[13px] font-medium text-claude-textSecondary">Tasks</span>
               </div>
+            ) : null}
+            {[
+              { label: 'Scheduled', icon: <img src={figmaScheduledIcon} alt="" width={18} height={18} className="dark:invert transition-[filter] duration-200" />, onClick: () => navigate('/scheduled'), active: location.pathname === '/scheduled' },
+              { label: 'Customize', icon: <img src={figmaCustomizeIcon} alt="" width={18} height={16} className="dark:invert transition-[filter] duration-200" />, onClick: () => navigate(customizePath), active: location.pathname === customizePath },
+              { label: 'Dispatch', icon: <img src={figmaDispatchIcon} alt="" width={12} height={18} className="dark:invert transition-[filter] duration-200" />, onClick: undefined, active: false },
+              { label: 'Artifacts', icon: <IconArtifactsExact size={20} className="text-[#121212] dark:text-claude-text transition-colors duration-200" />, onClick: () => navigate('/artifacts'), active: location.pathname === '/artifacts' },
+            ].map((item) => (
               <button
-                type="button"
-                disabled
-                className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-[13px] text-claude-textSecondary/70 cursor-not-allowed"
-                style={{ paddingLeft: `${tunerConfig?.recentsPl || 12}px` }}
+                key={item.label}
+                onClick={item.onClick}
+                disabled={!item.onClick}
+                className={`group flex h-8 w-full items-center justify-start overflow-hidden whitespace-nowrap rounded-[6px] text-[#373734] dark:text-claude-text transition-colors hover:bg-claude-hover disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:bg-transparent ${item.active ? 'bg-claude-hover' : ''}`}
+                style={{
+                  columnGap: '12px',
+                  fontFamily: '"Anthropic Sans", "Figtree", sans-serif',
+                  fontWeight: 400,
+                  paddingLeft: '0px',
+                  paddingRight: '0px'
+                }}
               >
-                <Pin size={14} strokeWidth={1.6} />
-                <span>Drag to pin</span>
+                <div className="flex flex-shrink-0 items-center justify-center text-[#121212] dark:text-claude-text transition-colors" style={sidebarIconSlotStyle}>
+                  {item.icon}
+                </div>
+                <span
+                  className={sidebarLabelClass}
+                  style={{
+                    fontFamily: '"Anthropic Sans", "Figtree", sans-serif',
+                    fontSize: '14px',
+                    letterSpacing: '-0.1504px',
+                    lineHeight: '20px'
+                  }}
+                >
+                  {item.label}
+                </span>
               </button>
-            </div>
-          )}
+            ))}
+          </div>
 
           {/* Recents Section Header */}
           <div
@@ -770,7 +751,7 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
             }}
           >
             <span className="text-[13px] font-medium text-claude-textSecondary">
-              {isCoworkSection ? 'Recent tasks' : isCodeSection ? 'Recent sessions' : 'Recents'}
+              Recents
             </span>
             <button
               onClick={(e) => {
@@ -788,6 +769,8 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
             {chats.slice(0, 30).map((chat, index) => {
               const chatPath = conversationPath(chat.id);
               const isActive = location.pathname === chatPath;
+              const workspacePath = isCodeSection ? getChatWorkspacePath(chat) : '';
+              const workspaceSubtitle = workspacePath ? formatWorkspaceSubtitle(workspacePath) : '';
               return (
                 <div
                   key={chat.id}
@@ -819,7 +802,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
                     >
                       {chat.title || 'New Chat'}
                     </div>
-                    {chat.project_name && (
+                    {workspaceSubtitle ? (
+                      <div
+                        className="text-[11px] text-claude-textSecondary truncate leading-snug mt-0.5 opacity-70"
+                        title={workspacePath}
+                      >
+                        {workspaceSubtitle}
+                      </div>
+                    ) : chat.project_name && (
                       <div className="text-[11px] text-claude-textSecondary truncate leading-snug mt-0.5 opacity-60">
                         {chat.project_name}
                       </div>
@@ -923,14 +913,14 @@ const Sidebar = ({ isCollapsed, toggleSidebar, refreshTrigger, onNewChatClick, o
           <button
             ref={userBtnRef}
             onClick={toggleUserMenu}
-            className={`w-full flex items-center gap-2 hover:bg-claude-hover rounded-lg transition-all duration-200 overflow-hidden whitespace-nowrap`}
+            className={`w-full flex items-center gap-2 hover:bg-claude-hover rounded-lg transition-all duration-200 overflow-hidden whitespace-nowrap ${isCollapsed ? 'justify-center' : ''}`}
             style={{
-              padding: isCollapsed ? '8px 0px 8px 5px' : '8px'
+              padding: isCollapsed ? '8px 0px' : '8px'
             }}
           >
             <div
               className="rounded-full bg-claude-avatar text-claude-avatarText flex items-center justify-center text-[15px] font-medium flex-shrink-0"
-              style={{ width: `${tunerConfig?.userAvatarSize || 32}px`, height: `${tunerConfig?.userAvatarSize || 32}px` }}
+              style={{ width: `${avatarSize}px`, height: `${avatarSize}px` }}
             >
               {(userUser?.display_name || userUser?.full_name || userUser?.nickname || 'U').charAt(0).toUpperCase()}
             </div>

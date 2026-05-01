@@ -1,8 +1,8 @@
-export type AppMode = 'chat' | 'cowork' | 'code';
+export type AppMode = 'chat' | 'code';
 
 export type CodeLaunchPayload = {
   folderPath: string;
-  prompt: string;
+  prompt?: string;
   model?: string;
 };
 

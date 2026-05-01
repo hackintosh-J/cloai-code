@@ -9,9 +9,7 @@ const ModeTabs = ({
   onSelect: (mode: AppMode) => void;
 }) => {
   const currentMode: AppMode =
-    pathname.startsWith('/cowork') || pathname === '/scheduled'
-      ? 'cowork'
-      : pathname.startsWith('/code')
+    pathname.startsWith('/code')
         ? 'code'
         : 'chat';
 
@@ -21,7 +19,7 @@ const ModeTabs = ({
       style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}
     >
       <div className="flex items-center rounded-full border border-claude-border bg-claude-bg/95 p-1 shadow-sm backdrop-blur transition-all duration-300">
-        {(['chat', 'cowork', 'code'] as const).map((mode) => {
+        {(['chat', 'code'] as const).map((mode) => {
           const active = currentMode === mode;
           return (
             <button

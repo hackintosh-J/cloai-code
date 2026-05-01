@@ -7,6 +7,9 @@
   ],
   "permissions": [
     "core:default",
+    "core:window:allow-close",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
     "dialog:allow-open",
     "shell:allow-open"
   ]
