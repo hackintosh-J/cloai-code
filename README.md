@@ -19,12 +19,12 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 4 月 29 日**
+更新于 **2026 年 5 月 1 日**
 - ⭐ **cloai Desktop 0.0.3 预览版发布**：桌面端完成一轮主工作区与导航结构升级，新增原生窗口控制、代码页整合与更完整的本地 bridge 能力。（详见下方桌面端介绍）
-- ⭐ **桌面端移除 Cowork 独立入口**：主导航重新聚焦 Chat / Code 两个主模式，Projects 作为项目上下文入口随模式工作，减少预览阶段的重复分叉路径。
-- ⭐ **Code 主工作区体验升级**：`CodePage`、对话工作区、项目工作区与拖拽分栏联动重构，工作流更顺。
-- ⭐ **桌面端原生命令桥接继续补强**：新增 commands / streaming / artifacts / projects 相关原生链路，为更多本地动作打基础。
-- ⭐ **窗口与标题栏原生化增强**：新增 `WindowControls` 并同步调整标题栏与窗口配置，桌面应用质感更完整。
+- ⭐ **新增 GitHub Copilot OAuth 的 GPT 系列模型缓存支持**：补齐对应 OpenAI-compatible 路径上的 Responses 缓存命中能力。
+- ⭐ **`/login` 登录体系重写**：新增账号管理、Provider 分组、官方/自定义子菜单、分步配置与 OAuth 回填，整个登录链路从一次性录入升级为可持续管理的闭环。
+- ⭐ **正式支持 GitHub Copilot OAuth**：已实测 `gpt-5-mini`、`claude-haiku-4.5`、`gemini-3-flash-preview`，并补齐 OpenAI OAuth、Google AI Studio、Google Antigravity (OAuth) 等官方线路。
+- ⭐ **官方 / OAuth 线路支持自动写入模型列表**：OpenAI Official / OAuth、Google AI Studio、Google Antigravity (OAuth)、GitHub Copilot OAuth 登录完成后即可在 `/model` 直接切换。
 
 更多历史更新与细节说明请跳转查看：[详细更新日志](#详细更新日志)
 
@@ -65,7 +65,11 @@
 ## 🖥️ 桌面端：Cloai Desktop (0.0.3)
 如果你不习惯纯命令行操作，现在可以使用全新的 **Cloai Desktop** 桌面应用。它将 Claude Code 强大的文件处理和代码执行能力，包装进了一个持续迭代中的本地图形化工作台里；在 0.0.3 中，桌面端进一步收拢导航结构、增强代码主工作区，并补齐更多原生命令桥接能力。
 
-> [预留：在这里放置 Cloai Desktop v0.0.3 展示窗口截图]
+<img width="2560" height="1526" alt="ab130b3b659f2c641018d4ce92af5b15" src="https://github.com/user-attachments/assets/b7fa0ce4-a150-4672-9349-c2937a63d751" />
+
+<img width="2560" height="1524" alt="0b57dc143ed686403df2873764eea913" src="https://github.com/user-attachments/assets/ed44eb22-9336-419f-8488-e88e9196c609" />
+
+
 
 ### 本次版本重点
 
@@ -848,7 +852,7 @@ cloai
 
 ## 详细更新日志
 
-### 2026 年 4 月 29 日更新
+### 2026 年 5 月 1 日更新
 - 发布 Cloai Desktop 0.0.3 预览版，并将 cloai-code 与 cloai-desktop 版本号同步提升至 `v0.0.3`。
 - 桌面端移除 Cowork 独立页面与相关导航资产，重新整理 `AppLayout`、`AppSidebar`、`ModeTabs`、`TitleBar` 等主框架组件，聚焦 Chat / Code 两个主模式，并让 Projects 作为项目上下文入口随对应模式工作。
 - 新增 `WindowControls` 组件，并配合 Tauri 窗口配置调整标题栏与窗口行为，补强桌面应用原生化体验。
