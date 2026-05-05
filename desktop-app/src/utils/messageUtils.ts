@@ -247,19 +247,26 @@ export function mergeDocumentDraftIntoMessage(message: any, incomingDraft: any) 
 }
 
 export function applyGenerationState(message: any, state: any) {
+  const toolCalls = Array.isArray(state.tool_calls)
+    ? state.tool_calls
+    : (Array.isArray(state.toolCalls) ? state.toolCalls : [])
+  const toolOrder = Array.isArray(state.tool_order)
+    ? state.tool_order
+    : (Array.isArray(state.toolOrder) ? state.toolOrder : toolCalls.map((tc: any) => tc?.id).filter(Boolean))
+  const lastToolTextOffset = state.last_tool_text_offset ?? state.lastToolTextOffset ?? 0
   const base = {
     ...message,
     content: state.text || message.content,
     thinking: state.thinking || message.thinking,
-    thinkingSummary: state.thinkingSummary || message.thinkingSummary,
+    thinkingSummary: state.thinkingSummary || state.thinking_summary || message.thinkingSummary,
     citations: state.citations?.length ? state.citations : message.citations,
     searchLogs: state.searchLogs?.length ? state.searchLogs : message.searchLogs,
     isThinking: !state.text && !!state.thinking,
-    ...(state.tool_order?.length ? {
-      toolCalls: state.tool_order
-        .map((id: string) => state.tool_calls?.find((tc: any) => tc.id === id))
+    ...(toolOrder.length ? {
+      toolCalls: toolOrder
+        .map((id: string) => toolCalls.find((tc: any) => tc?.id === id))
         .filter(Boolean),
-      ...(state.last_tool_text_offset > 0 ? { toolTextEndOffset: state.last_tool_text_offset } : {}),
+      ...(lastToolTextOffset > 0 ? { toolTextEndOffset: lastToolTextOffset } : {}),
     } : {}),
   }
   const withDocuments = mergeDocumentsIntoMessage(base, state.document, state.documents)

@@ -88,6 +88,17 @@ type BrowserSpeechRecognition = {
 
 const inspirationLibrary = inspirationsData.items as InspirationItem[];
 
+function messageHasVisibleStreamingState(message: any): boolean {
+  if (!message || message.role !== 'assistant') return false;
+  if (message.content) return true;
+  if (message.thinking) return true;
+  if (message.thinking_summary) return true;
+  if (message.toolCalls && message.toolCalls.length > 0) return true;
+  if (message.documents && message.documents.length > 0) return true;
+  if (message.documentDrafts && message.documentDrafts.length > 0) return true;
+  return false;
+}
+
 const pickInspirations = (names: string[]) =>
   names
     .map((name) => inspirationLibrary.find((item) => item.name === name))
@@ -1994,11 +2005,13 @@ const MainContent = ({
             if (
               last &&
               last.role === 'assistant' &&
-              !last.content &&
+              !messageHasVisibleStreamingState(last) &&
               !genStatus.text &&
               !genStatus.thinking &&
               !(genStatus.documents && genStatus.documents.length > 0) &&
-              !genStatus.document
+              !genStatus.document &&
+              !(genStatus.tool_calls && genStatus.tool_calls.length > 0) &&
+              !(genStatus.toolCalls && genStatus.toolCalls.length > 0)
             ) {
               // 已有空占位，更新它
               return prev;
@@ -2010,7 +2023,7 @@ const MainContent = ({
               return newMsgs;
             }
             // 追加新的 assistant 占位
-            return [...prev, mergeDocumentsIntoMessage({
+            return [...prev, applyGenerationState({
               role: 'assistant',
               content: genStatus.text || '',
               thinking: genStatus.thinking || '',
@@ -2018,7 +2031,7 @@ const MainContent = ({
               citations: genStatus.citations,
               searchLogs: genStatus.searchLogs,
               isThinking: !genStatus.text && !!genStatus.thinking,
-            }, genStatus.document, genStatus.documents)];
+            }, genStatus)];
           });
           setLoading(true);
           isAtBottomRef.current = true;
