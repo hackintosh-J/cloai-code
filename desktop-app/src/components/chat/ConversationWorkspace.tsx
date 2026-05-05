@@ -2335,11 +2335,10 @@ const MainContent = ({
         });
       },
       (full) => {
-        // Always clean up streaming state and request count, even if session changed
-        removeStreaming(conversationId!);
-        messagesBufferRef.current.delete(conversationId!);
         activeRequestCountRef.current = Math.max(0, activeRequestCountRef.current - 1);
         if (!isStreamSessionActive(conversationId!, streamRequestId)) return;
+        removeStreaming(conversationId!);
+        messagesBufferRef.current.delete(conversationId!);
         if (viewingIdRef.current === conversationId) {
           setLoading(false);
           setActiveTasks(new Map());

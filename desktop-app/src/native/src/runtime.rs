@@ -243,6 +243,13 @@ pub(crate) fn set_workspace_config(app: &AppHandle, dir: String) -> Result<(), S
         chat_font: current.chat_font,
         default_model: current.default_model,
         user_mode: current.user_mode,
+        parallel_tool_calls: current.parallel_tool_calls,
+        model_context_window_override: current.model_context_window_override,
+        sampling_temperature: current.sampling_temperature,
+        max_consecutive_identical_tool_calls: current.max_consecutive_identical_tool_calls,
+        max_api_retries: current.max_api_retries,
+        open_ai_responses_incremental_web_socket: current.open_ai_responses_incremental_web_socket,
+        open_ai_prefix_debug: current.open_ai_prefix_debug,
     })
     .map_err(|error| error.to_string())?;
 
@@ -322,6 +329,13 @@ pub(crate) fn set_runtime_config(
         chat_font: current.chat_font,
         default_model: current.default_model,
         user_mode: current.user_mode,
+        parallel_tool_calls: current.parallel_tool_calls,
+        model_context_window_override: current.model_context_window_override,
+        sampling_temperature: current.sampling_temperature,
+        max_consecutive_identical_tool_calls: current.max_consecutive_identical_tool_calls,
+        max_api_retries: current.max_api_retries,
+        open_ai_responses_incremental_web_socket: current.open_ai_responses_incremental_web_socket,
+        open_ai_prefix_debug: current.open_ai_prefix_debug,
     };
 
     let body = serde_json::to_string_pretty(&next).map_err(|error| error.to_string())?;

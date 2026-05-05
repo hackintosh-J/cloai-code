@@ -15,7 +15,7 @@ const WORK_OPTIONS = [
   '法律', '医疗健康', '其他',
 ];
 
-type Tab = 'general' | 'account' | 'usage' | 'models';
+type Tab = 'general' | 'account' | 'usage' | 'models' | 'config';
 
 const storedString = (value: unknown) => typeof value === 'string' ? value : '';
 
@@ -56,6 +56,18 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
   const [runtimePath, setRuntimePath] = useState('');
   const [workspaceDir, setWorkspaceDir] = useState('');
 
+  // Config settings state
+  const [parallelToolCalls, setParallelToolCalls] = useState(false);
+  const [modelContextWindowOverride, setModelContextWindowOverride] = useState('auto');
+  const [samplingTemperature, setSamplingTemperature] = useState<string | number>('default');
+  const [samplingTemperatureCustom, setSamplingTemperatureCustom] = useState('1');
+  const [maxConsecutiveIdenticalToolCalls, setMaxConsecutiveIdenticalToolCalls] = useState<string | number>('default');
+  const [maxConsecutiveIdenticalToolCallsCustom, setMaxConsecutiveIdenticalToolCallsCustom] = useState('5');
+  const [maxApiRetries, setMaxApiRetries] = useState<string | number>('default');
+  const [maxApiRetriesCustom, setMaxApiRetriesCustom] = useState('15');
+  const [openAIResponsesIncrementalWebSocket, setOpenAIResponsesIncrementalWebSocket] = useState(false);
+  const [openAIPrefixDebug, setOpenAIPrefixDebug] = useState(false);
+
   useEffect(() => {
     getDesktopPreferences().then((preferences) => {
       if (preferences.theme) setTheme(preferences.theme);
@@ -63,6 +75,35 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
       if (preferences.defaultModel) setDefaultModel(preferences.defaultModel);
       if (preferences.sendKey) setSendKey(preferences.sendKey);
       if (preferences.newlineKey) setNewlineKey(preferences.newlineKey);
+      // Load config settings
+      if (preferences.parallelToolCalls !== undefined && preferences.parallelToolCalls !== null) setParallelToolCalls(preferences.parallelToolCalls);
+      if (preferences.modelContextWindowOverride) setModelContextWindowOverride(preferences.modelContextWindowOverride);
+      if (preferences.samplingTemperature !== undefined && preferences.samplingTemperature !== null) {
+        if (typeof preferences.samplingTemperature === 'number') {
+          setSamplingTemperature('custom');
+          setSamplingTemperatureCustom(String(preferences.samplingTemperature));
+        } else {
+          setSamplingTemperature(preferences.samplingTemperature);
+        }
+      }
+      if (preferences.maxConsecutiveIdenticalToolCalls !== undefined && preferences.maxConsecutiveIdenticalToolCalls !== null) {
+        if (typeof preferences.maxConsecutiveIdenticalToolCalls === 'number') {
+          setMaxConsecutiveIdenticalToolCalls('custom');
+          setMaxConsecutiveIdenticalToolCallsCustom(String(preferences.maxConsecutiveIdenticalToolCalls));
+        } else {
+          setMaxConsecutiveIdenticalToolCalls(preferences.maxConsecutiveIdenticalToolCalls);
+        }
+      }
+      if (preferences.maxApiRetries !== undefined && preferences.maxApiRetries !== null) {
+        if (typeof preferences.maxApiRetries === 'number') {
+          setMaxApiRetries('custom');
+          setMaxApiRetriesCustom(String(preferences.maxApiRetries));
+        } else {
+          setMaxApiRetries(preferences.maxApiRetries);
+        }
+      }
+      if (preferences.openAIResponsesIncrementalWebSocket !== undefined && preferences.openAIResponsesIncrementalWebSocket !== null) setOpenAIResponsesIncrementalWebSocket(preferences.openAIResponsesIncrementalWebSocket);
+      if (preferences.openAIPrefixDebug !== undefined && preferences.openAIPrefixDebug !== null) setOpenAIPrefixDebug(preferences.openAIPrefixDebug);
     }).catch(() => { });
 
     // Load profile from localStorage
@@ -276,6 +317,16 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
         >
           Models
         </button>
+        <button
+          onClick={() => setTab('config')}
+          className={`text-left px-3 py-2 rounded-lg text-[15px] font-medium transition-all duration-200 ${
+            tab === 'config'
+              ? 'bg-claude-btn-hover text-claude-text scale-[1.02]'
+              : 'text-claude-textSecondary hover:bg-claude-hover hover:translate-x-1'
+          }`}
+        >
+          Config
+        </button>
       </div>
 
       {/* Right Content Area */}
@@ -288,6 +339,7 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
         >
           {tab === 'general' && renderGeneral()}
           {tab === 'models' && <ProviderSettings />}
+          {tab === 'config' && renderConfig()}
         </div>
       </div>
     </div>
@@ -534,6 +586,238 @@ const SettingsPage = ({ onClose }: SettingsPageProps) => {
             </>
           )}
         </section>
+      </div>
+    );
+  }
+
+  function renderConfig() {
+    const handleSaveConfig = async () => {
+      try {
+        const configData: any = {
+          parallelToolCalls,
+          modelContextWindowOverride,
+          samplingTemperature: samplingTemperature === 'custom' ? Number(samplingTemperatureCustom) : samplingTemperature,
+          maxConsecutiveIdenticalToolCalls: maxConsecutiveIdenticalToolCalls === 'custom' ? Number(maxConsecutiveIdenticalToolCallsCustom) : maxConsecutiveIdenticalToolCalls,
+          maxApiRetries: maxApiRetries === 'custom' ? Number(maxApiRetriesCustom) : maxApiRetries,
+          openAIResponsesIncrementalWebSocket,
+          openAIPrefixDebug,
+        };
+        await setDesktopPreferences(configData);
+        // Also save to localStorage for runtime access
+        safeSetStorageItem('config_parallelToolCalls', String(parallelToolCalls));
+        safeSetStorageItem('config_modelContextWindowOverride', modelContextWindowOverride);
+        safeSetStorageItem('config_samplingTemperature', String(samplingTemperature === 'custom' ? samplingTemperatureCustom : samplingTemperature));
+        safeSetStorageItem('config_maxConsecutiveIdenticalToolCalls', String(maxConsecutiveIdenticalToolCalls === 'custom' ? maxConsecutiveIdenticalToolCallsCustom : maxConsecutiveIdenticalToolCalls));
+        safeSetStorageItem('config_maxApiRetries', String(maxApiRetries === 'custom' ? maxApiRetriesCustom : maxApiRetries));
+        safeSetStorageItem('config_openAIResponsesIncrementalWebSocket', String(openAIResponsesIncrementalWebSocket));
+        safeSetStorageItem('config_openAIPrefixDebug', String(openAIPrefixDebug));
+        alert('配置已保存');
+      } catch (err: any) {
+        alert('保存失败: ' + (err.message || '未知错误'));
+      }
+    };
+
+    return (
+      <div className="space-y-10 animate-fade-in">
+        <section>
+          <h3 className="text-[16px] font-semibold text-claude-text mb-5">工具调用配置</h3>
+          <div className="space-y-6">
+            {/* Parallel Tool Calls */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-[14px] font-medium text-claude-text mb-1">并行工具调用</label>
+                <p className="text-[12px] text-claude-textSecondary">允许模型同时执行多个工具调用。默认关闭以保护上下文完整性。</p>
+              </div>
+              <button
+                onClick={() => setParallelToolCalls(!parallelToolCalls)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  parallelToolCalls ? 'bg-[#3b82f6]' : 'bg-claude-border'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  parallelToolCalls ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            <hr className="border-claude-border" />
+
+            {/* Context Window Override */}
+            <div>
+              <label className="block text-[14px] font-medium text-claude-text mb-1.5">上下文窗口覆盖</label>
+              <p className="text-[12px] text-claude-textSecondary mb-2">覆盖模型上下文窗口大小。auto 表示自动检测。</p>
+              <select
+                value={modelContextWindowOverride}
+                onChange={e => setModelContextWindowOverride(e.target.value)}
+                className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0 appearance-none"
+              >
+                <option value="auto">Auto (自动检测)</option>
+                <option value="4k">4K</option>
+                <option value="32k">32K</option>
+                <option value="200k">200K</option>
+                <option value="1m">1M</option>
+              </select>
+            </div>
+
+            <hr className="border-claude-border" />
+
+            {/* Sampling Temperature */}
+            <div>
+              <label className="block text-[14px] font-medium text-claude-text mb-1.5">采样温度</label>
+              <p className="text-[12px] text-claude-textSecondary mb-2">控制请求的温度参数。Default 保持现有行为，Off 不发送温度，Custom 发送 0-2 之间的数值。</p>
+              <select
+                value={typeof samplingTemperature === 'string' ? samplingTemperature : 'custom'}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'default' || val === 'off') {
+                    setSamplingTemperature(val);
+                  } else {
+                    setSamplingTemperature('custom');
+                  }
+                }}
+                className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0 appearance-none mb-2"
+              >
+                <option value="default">Default (默认)</option>
+                <option value="off">Off (关闭)</option>
+                <option value="custom">Custom (自定义)</option>
+              </select>
+              {samplingTemperature === 'custom' && (
+                <input
+                  type="number"
+                  min="0"
+                  max="2"
+                  step="0.1"
+                  value={samplingTemperatureCustom}
+                  onChange={e => setSamplingTemperatureCustom(e.target.value)}
+                  className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0"
+                  placeholder="0-2"
+                />
+              )}
+            </div>
+
+            <hr className="border-claude-border" />
+
+            {/* Max Consecutive Identical Tool Calls */}
+            <div>
+              <label className="block text-[14px] font-medium text-claude-text mb-1.5">最大连续相同工具调用次数</label>
+              <p className="text-[12px] text-claude-textSecondary mb-2">设置连续相同工具调用的最大次数，防止无限循环。默认为 5。</p>
+              <select
+                value={typeof maxConsecutiveIdenticalToolCalls === 'string' ? maxConsecutiveIdenticalToolCalls : 'custom'}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'default') {
+                    setMaxConsecutiveIdenticalToolCalls('default');
+                  } else {
+                    setMaxConsecutiveIdenticalToolCalls('custom');
+                  }
+                }}
+                className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0 appearance-none mb-2"
+              >
+                <option value="default">Default (默认: 5)</option>
+                <option value="custom">Custom (自定义)</option>
+              </select>
+              {maxConsecutiveIdenticalToolCalls === 'custom' && (
+                <input
+                  type="number"
+                  min="1"
+                  value={maxConsecutiveIdenticalToolCallsCustom}
+                  onChange={e => setMaxConsecutiveIdenticalToolCallsCustom(e.target.value)}
+                  className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0"
+                  placeholder="正整数"
+                />
+              )}
+            </div>
+
+            <hr className="border-claude-border" />
+
+            {/* Max API Retries */}
+            <div>
+              <label className="block text-[14px] font-medium text-claude-text mb-1.5">最大 API 重试次数</label>
+              <p className="text-[12px] text-claude-textSecondary mb-2">设置 API 请求的最大重试次数。默认为 15。</p>
+              <select
+                value={typeof maxApiRetries === 'string' ? maxApiRetries : 'custom'}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === 'default' || val === 'off' || val === 'always') {
+                    setMaxApiRetries(val);
+                  } else {
+                    setMaxApiRetries('custom');
+                  }
+                }}
+                className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0 appearance-none mb-2"
+              >
+                <option value="default">Default (默认: 15)</option>
+                <option value="off">Off (关闭重试)</option>
+                <option value="always">Always (始终重试)</option>
+                <option value="custom">Custom (自定义)</option>
+              </select>
+              {maxApiRetries === 'custom' && (
+                <input
+                  type="number"
+                  min="0"
+                  value={maxApiRetriesCustom}
+                  onChange={e => setMaxApiRetriesCustom(e.target.value)}
+                  className="w-full px-3 py-2 bg-claude-input border border-claude-border rounded-md text-[14px] text-claude-text focus:outline-none focus:border-[#387ee0] focus:ring-0"
+                  placeholder="非负整数"
+                />
+              )}
+            </div>
+          </div>
+        </section>
+
+        <hr className="border-claude-border" />
+
+        <section>
+          <h3 className="text-[16px] font-semibold text-claude-text mb-5">OpenAI 兼容配置</h3>
+          <div className="space-y-6">
+            {/* OpenAI Responses Incremental WebSocket */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-[14px] font-medium text-claude-text mb-1">Responses 增量 WebSocket</label>
+                <p className="text-[12px] text-claude-textSecondary">为 OpenAI 官方 Responses API 启用增量 WebSocket 续传。默认关闭。</p>
+              </div>
+              <button
+                onClick={() => setOpenAIResponsesIncrementalWebSocket(!openAIResponsesIncrementalWebSocket)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  openAIResponsesIncrementalWebSocket ? 'bg-[#3b82f6]' : 'bg-claude-border'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  openAIResponsesIncrementalWebSocket ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+
+            <hr className="border-claude-border" />
+
+            {/* OpenAI Prefix Debug */}
+            <div className="flex items-center justify-between">
+              <div>
+                <label className="block text-[14px] font-medium text-claude-text mb-1">前缀缓存调试</label>
+                <p className="text-[12px] text-claude-textSecondary">在转录视图中显示 OpenAI 兼容请求的前缀缓存调试附件。默认关闭。</p>
+              </div>
+              <button
+                onClick={() => setOpenAIPrefixDebug(!openAIPrefixDebug)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  openAIPrefixDebug ? 'bg-[#3b82f6]' : 'bg-claude-border'
+                }`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  openAIPrefixDebug ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <div className="flex justify-end pt-4">
+          <button
+            onClick={handleSaveConfig}
+            className="px-6 py-2 rounded-lg bg-[#333] text-white text-[14px] font-medium hover:bg-[#1a1a1a] dark:bg-white dark:text-black dark:hover:bg-[#e5e5e5] transition-colors"
+          >
+            保存配置
+          </button>
+        </div>
       </div>
     );
   }

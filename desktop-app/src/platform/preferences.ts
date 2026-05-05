@@ -8,6 +8,14 @@ export interface AppPreferences {
   chatFont?: string | null;
   defaultModel?: string | null;
   userMode?: string | null;
+  // Config settings
+  parallelToolCalls?: boolean | null;
+  modelContextWindowOverride?: string | null; // 'auto' | '4k' | '32k' | '200k' | '1m'
+  samplingTemperature?: number | string | null; // number (0-2) | 'default' | 'off'
+  maxConsecutiveIdenticalToolCalls?: number | string | null; // number | 'default'
+  maxApiRetries?: number | string | null; // number | 'default' | 'off' | 'always'
+  openAIResponsesIncrementalWebSocket?: boolean | null;
+  openAIPrefixDebug?: boolean | null;
 }
 
 export type DesktopPreferences = AppPreferences
@@ -26,6 +34,14 @@ export async function setPreferences(payload: AppPreferences) {
       chatFont: payload.chatFont ?? undefined,
       defaultModel: payload.defaultModel ?? undefined,
       userMode: payload.userMode ?? undefined,
+      // Config settings
+      parallelToolCalls: payload.parallelToolCalls ?? undefined,
+      modelContextWindowOverride: payload.modelContextWindowOverride ?? undefined,
+      samplingTemperature: payload.samplingTemperature ?? undefined,
+      maxConsecutiveIdenticalToolCalls: payload.maxConsecutiveIdenticalToolCalls ?? undefined,
+      maxApiRetries: payload.maxApiRetries ?? undefined,
+      openAIResponsesIncrementalWebSocket: payload.openAIResponsesIncrementalWebSocket ?? undefined,
+      openAIPrefixDebug: payload.openAIPrefixDebug ?? undefined,
     },
   })
 }

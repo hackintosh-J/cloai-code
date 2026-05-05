@@ -182,8 +182,50 @@ export async function spawnInProcessTeammate(
     // Register cleanup handler for graceful shutdown
     const unregisterCleanup = registerCleanup(async () => {
       logForDebugging(`[spawnInProcessTeammate] Cleanup called for ${agentId}`)
+
+      // Abort the controller to stop execution
       abortController.abort()
-      // Task state will be updated by the execution loop when it detects abort
+
+      // Immediately update task state to 'killed' to prevent blocking team deletion
+      // Don't rely on the execution loop to detect abort - it may not have time during shutdown
+      setAppState((prev: AppState) => {
+        const task = prev.tasks[taskId]
+        if (!task || task.type !== 'in_process_teammate' || task.status !== 'running') {
+          return prev
+        }
+
+        logForDebugging(`[spawnInProcessTeammate] Setting task ${taskId} to killed during cleanup`)
+
+        // Call pending idle callbacks to unblock any waiters
+        task.onIdleCallbacks?.forEach(cb => cb())
+
+        return {
+          ...prev,
+          tasks: {
+            ...prev.tasks,
+            [taskId]: {
+              ...task,
+              status: 'killed' as const,
+              notified: true,
+              endTime: Date.now(),
+              onIdleCallbacks: [],
+              messages: task.messages?.length
+                ? [task.messages[task.messages.length - 1]!]
+                : undefined,
+              pendingUserMessages: [],
+              inProgressToolUseIDs: undefined,
+              abortController: undefined,
+              unregisterCleanup: undefined,
+              currentWorkAbortController: undefined,
+            },
+          },
+        }
+      })
+
+      // Remove from team file
+      if (teamName && agentId) {
+        removeMemberByAgentId(teamName, agentId)
+      }
     })
     taskState.unregisterCleanup = unregisterCleanup
 

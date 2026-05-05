@@ -64,6 +64,7 @@ import {
   sendCommandToPane,
 } from '../../utils/swarm/teammateLayoutManager.js'
 import { getHardcodedTeammateModelFallback } from '../../utils/swarm/teammateModel.js'
+import { isFirstPartyAnthropicBaseUrl } from '../../utils/model/providers.js'
 import { registerTask } from '../../utils/task/framework.js'
 import { writeToMailbox } from '../../utils/teammateMailbox.js'
 import type { CustomAgentDefinition } from '../AgentTool/loadAgentsDir.js'
@@ -77,6 +78,12 @@ function getDefaultTeammateModel(leaderModel: string | null): string {
   }
   if (configured !== undefined) {
     return parseUserSpecifiedModel(configured)
+  }
+  // On custom Anthropic-compatible endpoints, the hardcoded Claude fallback
+  // (e.g. claude-opus-4-6) may not be available. Prefer the leader's model
+  // so teammates use the same non-Claude model the user is running.
+  if (!isFirstPartyAnthropicBaseUrl() && leaderModel) {
+    return leaderModel
   }
   return getHardcodedTeammateModelFallback()
 }
@@ -504,6 +511,7 @@ async function handleSpawnSplitPane(
     tmuxPaneId: paneId,
     cwd: workingDir,
     subscriptions: [],
+    isActive: true,
     backendType: detectionResult.backend.type,
   })
   await writeTeamFileAsync(teamName, teamFile)
@@ -718,6 +726,7 @@ async function handleSpawnSeparateWindow(
     tmuxPaneId: paneId,
     cwd: workingDir,
     subscriptions: [],
+    isActive: true,
     backendType: 'tmux', // This handler always uses tmux directly
   })
   await writeTeamFileAsync(teamName, teamFile)
@@ -1004,6 +1013,7 @@ async function handleSpawnInProcess(
     tmuxPaneId: 'in-process',
     cwd: getCwd(),
     subscriptions: [],
+    isActive: true,
     backendType: 'in-process',
   })
   await writeTeamFileAsync(teamName, teamFile)

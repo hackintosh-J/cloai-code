@@ -22,6 +22,15 @@ pub(crate) struct WorkspaceConfig {
     pub(crate) chat_font: Option<String>,
     pub(crate) default_model: Option<String>,
     pub(crate) user_mode: Option<String>,
+    pub(crate) parallel_tool_calls: Option<Value>,
+    pub(crate) model_context_window_override: Option<Value>,
+    pub(crate) sampling_temperature: Option<Value>,
+    pub(crate) max_consecutive_identical_tool_calls: Option<Value>,
+    pub(crate) max_api_retries: Option<Value>,
+    #[serde(rename = "openAIResponsesIncrementalWebSocket")]
+    pub(crate) open_ai_responses_incremental_web_socket: Option<Value>,
+    #[serde(rename = "openAIPrefixDebug")]
+    pub(crate) open_ai_prefix_debug: Option<Value>,
 }
 
 pub(crate) fn cloai_config_dir() -> Result<PathBuf, String> {

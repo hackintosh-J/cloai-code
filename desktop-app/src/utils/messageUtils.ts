@@ -255,6 +255,12 @@ export function applyGenerationState(message: any, state: any) {
     citations: state.citations?.length ? state.citations : message.citations,
     searchLogs: state.searchLogs?.length ? state.searchLogs : message.searchLogs,
     isThinking: !state.text && !!state.thinking,
+    ...(state.tool_order?.length ? {
+      toolCalls: state.tool_order
+        .map((id: string) => state.tool_calls?.find((tc: any) => tc.id === id))
+        .filter(Boolean),
+      ...(state.last_tool_text_offset > 0 ? { toolTextEndOffset: state.last_tool_text_offset } : {}),
+    } : {}),
   }
   const withDocuments = mergeDocumentsIntoMessage(base, state.document, state.documents)
   const drafts = Array.isArray(state?.documentDrafts) ? state.documentDrafts : []

@@ -485,9 +485,10 @@ pub(crate) fn get_generation_status(
 
 #[tauri::command]
 pub(crate) fn stop_generation(
+    app: AppHandle,
     conversation_id: String,
 ) -> Result<streaming::StopGenerationResult, String> {
-    streaming::stop_generation(conversation_id)
+    streaming::stop_generation(&app, conversation_id)
 }
 
 #[tauri::command]

@@ -83,8 +83,9 @@ export const TeamDeleteTool: Tool<InputSchema, Output> = buildTool({
         )
 
         // Separate truly active members from idle/dead ones
-        // Members with isActive === false are idle (finished their turn or crashed)
-        const activeMembers = nonLeadMembers.filter(m => m.isActive !== false)
+        // Members with isActive === false or undefined are idle (finished their turn or crashed)
+        // Only members with isActive === true are truly active
+        const activeMembers = nonLeadMembers.filter(m => m.isActive === true)
 
         if (activeMembers.length > 0) {
           const memberNames = activeMembers.map(m => m.name).join(', ')

@@ -52,6 +52,9 @@ pub(crate) struct GenerationStatus {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(crate) document: Option<Value>,
     pub(crate) cross_process: bool,
+    pub(crate) tool_calls: Vec<Value>,
+    pub(crate) tool_order: Vec<String>,
+    pub(crate) last_tool_text_offset: usize,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -1178,13 +1181,6 @@ fn clear_runtime_state(conversation_id: &str) {
     }
 }
 
-fn finish_stream(conversation_id: &str) -> Result<(), String> {
-    set_stream_state(conversation_id, |state| {
-        state.active = false;
-        state.done = true;
-    })
-}
-
 fn finalize_stream(
     app: &AppHandle,
     conversation_id: &str,
@@ -1339,6 +1335,9 @@ fn idle_generation_status() -> GenerationStatus {
         document_drafts: Vec::new(),
         document: None,
         cross_process: false,
+        tool_calls: Vec::new(),
+        tool_order: Vec::new(),
+        last_tool_text_offset: 0,
     }
 }
 
@@ -1399,10 +1398,20 @@ pub(crate) fn get_generation_status(conversation_id: String) -> Result<Generatio
         document_drafts: state.document_drafts.clone(),
         document: state.document.clone(),
         cross_process: state.cross_process,
+        tool_calls: state
+            .tool_order
+            .iter()
+            .filter_map(|id| state.tool_calls.get(id).cloned())
+            .collect(),
+        tool_order: state.tool_order.clone(),
+        last_tool_text_offset: state.last_tool_text_offset,
     })
 }
 
-pub(crate) fn stop_generation(conversation_id: String) -> Result<StopGenerationResult, String> {
+pub(crate) fn stop_generation(
+    app: &AppHandle,
+    conversation_id: String,
+) -> Result<StopGenerationResult, String> {
     let stopped = {
         let mut children = ACTIVE_CHILDREN.lock().map_err(|error| error.to_string())?;
         if let Some(child) = children.remove(&conversation_id) {
@@ -1417,7 +1426,7 @@ pub(crate) fn stop_generation(conversation_id: String) -> Result<StopGenerationR
     if let Ok(mut stdin_map) = ACTIVE_STDIN.lock() {
         stdin_map.remove(&conversation_id);
     }
-    let _ = finish_stream(&conversation_id);
+    let _ = finalize_stream(app, &conversation_id, None);
 
     Ok(StopGenerationResult { ok: true, stopped })
 }

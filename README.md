@@ -19,7 +19,7 @@
 
 ## 近期重要更新
 
-更新于 **2026 年 5 月 1 日**
+更新于 **2026 年 5 月 5 日**
 - ⭐ **cloai Desktop 0.0.3 预览版发布**：桌面端完成一轮主工作区与导航结构升级，新增原生窗口控制、代码页整合与更完整的本地 bridge 能力。（详见下方桌面端介绍）
 - ⭐ **新增 GitHub Copilot OAuth 的 GPT 系列模型缓存支持**：补齐对应 OpenAI-compatible 路径上的 Responses 缓存命中能力。
 - ⭐ **`/login` 登录体系重写**：新增账号管理、Provider 分组、官方/自定义子菜单、分步配置与 OAuth 回填，整个登录链路从一次性录入升级为可持续管理的闭环。
@@ -853,6 +853,13 @@ cloai
 -----
 
 ## 详细更新日志
+
+### 2026 年 5 月 5 日更新
+- 桌面端设置新增 **Config 配置页**：支持在 GUI 中管理并行工具调用、模型上下文窗口覆盖、采样温度、重复工具调用中止阈值、API 重试次数、OpenAI Responses 增量 WebSocket 及前缀调试等配置项，底层 Rust 偏好链路同步适配。
+- 桌面端 streaming 层新增 `tool_calls`、`tool_order`、`last_tool_text_offset` 字段并优化 `stop_generation` 流程，停止生成时改为调用 `finalize_stream` 统一清理，修复停止后流状态残留问题。
+- 修复 Swarm/Team 成员活跃状态判定：`isActive` 未定义时默认为 idle 而非 active，`TeamDeleteTool` 改为仅在 `isActive === true` 时视为活跃，避免残留 idle 成员阻塞团队删除。
+- 优化 `spawnInProcessTeammate` 清理逻辑：shutdown 时立即将任务标记为 `killed` 并从团队文件移除，不再依赖执行循环被动检测 abort。
+- 修复自定义 Anthropic 兼容端点下子代理模型别名匹配问题：非官方端点上 `opus`/`sonnet`/`haiku` 别名不再强制要求父模型包含对应关键词，而是直接继承父模型；`spawnMultiAgent` 同步调整，优先使用 leader 模型而非硬编码 Claude 回退。
 
 ### 2026 年 5 月 1 日更新
 - 发布 Cloai Desktop 0.0.3 预览版，并将 cloai-code 与 cloai-desktop 版本号同步提升至 `v0.0.3`。

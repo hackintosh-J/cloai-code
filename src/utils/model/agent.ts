@@ -9,7 +9,7 @@ import {
   getRuntimeMainLoopModel,
   parseUserSpecifiedModel,
 } from './model.js'
-import { getAPIProvider } from './providers.js'
+import { getAPIProvider, isFirstPartyAnthropicBaseUrl } from './providers.js'
 
 export const AGENT_MODEL_OPTIONS = [...MODEL_ALIASES, 'inherit'] as const
 export type AgentModelAlias = (typeof AGENT_MODEL_OPTIONS)[number]
@@ -110,8 +110,18 @@ export function getAgentModel(
  * since they carry semantics beyond "same tier as parent".
  */
 function aliasMatchesParentTier(alias: string, parentModel: string): boolean {
+  const normalizedAlias = alias.toLowerCase()
+  const isBareFamilyAlias = ['opus', 'sonnet', 'haiku'].includes(normalizedAlias)
+  // On custom Anthropic-compatible endpoints (non-first-party), the parent
+  // model may be a non-Claude model (e.g. gpt-5.4). Model aliases like
+  // 'opus'/'sonnet'/'haiku' can't be meaningfully resolved in that context,
+  // so treat any alias as matching the parent tier — the subagent will
+  // inherit the parent's actual model string.
+  if (!isFirstPartyAnthropicBaseUrl() && isBareFamilyAlias) {
+    return true
+  }
   const canonical = getCanonicalName(parentModel)
-  switch (alias.toLowerCase()) {
+  switch (normalizedAlias) {
     case 'opus':
       return canonical.includes('opus')
     case 'sonnet':

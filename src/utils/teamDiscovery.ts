@@ -51,8 +51,9 @@ export function getTeammateStatuses(teamName: string): TeammateStatus[] {
       continue
     }
 
-    // Read isActive from config, defaulting to true (active) if undefined
-    const isActive = member.isActive !== false
+    // Read isActive from config, defaulting to idle if undefined
+    // Only members with isActive === true are truly active
+    const isActive = member.isActive === true
     const status: 'running' | 'idle' = isActive ? 'running' : 'idle'
 
     statuses.push({
