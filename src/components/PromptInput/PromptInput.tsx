@@ -120,6 +120,9 @@ import { useMaybeTruncateInput } from './useMaybeTruncateInput.js';
 import { usePromptInputPlaceholder } from './usePromptInputPlaceholder.js';
 import { useShowFastIconHint } from './useShowFastIconHint.js';
 import { useSwarmBanner } from './useSwarmBanner.js';
+import { IMAGE_MAX_HEIGHT, IMAGE_MAX_WIDTH } from '../../constants/apiLimits.js';
+import { expandPastedTextRefs, parseReferences } from '../../history.js';
+import { roughTokenCountEstimation } from '../../services/tokenEstimation.js';
 import { isNonSpacePrintable, isVimModeEnabled } from './utils.js';
 type Props = {
   debug: boolean;
@@ -250,6 +253,95 @@ function PromptInput({
     show: false
   });
   const [cursorOffset, setCursorOffset] = useState<number>(input.length);
+  
+  const calculateImageTokens = useCallback((pastedContent: PastedContent): number => {
+    if (pastedContent.type !== 'image') {
+      return 0;
+    }
+
+    const dims = pastedContent.dimensions;
+    if (!dims) {
+      return Math.ceil((IMAGE_MAX_WIDTH * IMAGE_MAX_HEIGHT) / 750);
+    }
+
+    let width: number;
+    let height: number;
+
+    if (dims.displayWidth && dims.displayHeight) {
+      width = dims.displayWidth;
+      height = dims.displayHeight;
+    } else if (dims.originalWidth && dims.originalHeight) {
+      width = Math.min(dims.originalWidth, IMAGE_MAX_WIDTH);
+      height = Math.min(dims.originalHeight, IMAGE_MAX_HEIGHT);
+      
+      if (dims.originalWidth > IMAGE_MAX_WIDTH || dims.originalHeight > IMAGE_MAX_HEIGHT) {
+        const ratio = Math.min(IMAGE_MAX_WIDTH / dims.originalWidth, IMAGE_MAX_HEIGHT / dims.originalHeight);
+        width = Math.round(dims.originalWidth * ratio);
+        height = Math.round(dims.originalHeight * ratio);
+      }
+    } else {
+      return Math.ceil((IMAGE_MAX_WIDTH * IMAGE_MAX_HEIGHT) / 750);
+    }
+
+    return Math.ceil((width * height) / 750);
+  }, []);
+
+  const calculateTotalTokens = useCallback((text: string, contents: Record<number, PastedContent>): number => {
+    const expandedText = expandPastedTextRefs(text, contents);
+    let tokens = roughTokenCountEstimation(expandedText);
+    
+    const refs = parseReferences(text);
+    for (const ref of refs) {
+      const content = contents[ref.id];
+      if (content?.type === 'image') {
+        tokens += calculateImageTokens(content);
+      }
+    }
+    
+    return tokens;
+  }, [calculateImageTokens]);
+
+  const [tokenCount, setTokenCount] = useState<number>(
+    input.length === 0 ? 0 : calculateTotalTokens(input, pastedContents)
+  );
+  const [isCalculatingTokens, setIsCalculatingTokens] = useState(false);
+  const tokenDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (tokenDebounceTimerRef.current) {
+      clearTimeout(tokenDebounceTimerRef.current);
+      tokenDebounceTimerRef.current = null;
+    }
+
+    if (input.length === 0) {
+      setTokenCount(0);
+      setIsCalculatingTokens(false);
+      return;
+    }
+
+    setIsCalculatingTokens(true);
+
+    tokenDebounceTimerRef.current = setTimeout(() => {
+      const tokens = calculateTotalTokens(input, pastedContents);
+      setTokenCount(tokens);
+      setIsCalculatingTokens(false);
+      tokenDebounceTimerRef.current = null;
+    }, 300);
+
+    return () => {
+      if (tokenDebounceTimerRef.current) {
+        clearTimeout(tokenDebounceTimerRef.current);
+      }
+    };
+  }, [input, pastedContents, calculateTotalTokens]);
+
+  useEffect(() => {
+    return () => {
+      if (tokenDebounceTimerRef.current) {
+        clearTimeout(tokenDebounceTimerRef.current);
+      }
+    };
+  }, []);
   // Track the last input value set via internal handlers so we can detect
   // external input changes (e.g. speech-to-text injection) and move cursor to end.
   const lastInternalInputRef = React.useRef(input);
@@ -2271,7 +2363,7 @@ function PromptInput({
             {textInputElement}
           </Box>
         </Box>}
-      <PromptInputFooter apiKeyStatus={apiKeyStatus} debug={debug} exitMessage={exitMessage} vimMode={isVimModeEnabled() ? vimMode : undefined} mode={mode} autoUpdaterResult={autoUpdaterResult} isAutoUpdating={isAutoUpdating} verbose={verbose} onAutoUpdaterResult={onAutoUpdaterResult} onChangeIsUpdating={setIsAutoUpdating} suggestions={suggestions} selectedSuggestion={selectedSuggestion} maxColumnWidth={maxColumnWidth} toolPermissionContext={effectiveToolPermissionContext} helpOpen={helpOpen} suppressHint={input.length > 0} isLoading={isLoading} tasksSelected={tasksSelected} teamsSelected={teamsSelected} bridgeSelected={bridgeSelected} tmuxSelected={tmuxSelected} teammateFooterIndex={teammateFooterIndex} ideSelection={ideSelection} mcpClients={mcpClients} isPasting={isPasting} isInputWrapped={isInputWrapped} messages={messages} isSearching={isSearchingHistory} historyQuery={historyQuery} setHistoryQuery={setHistoryQuery} historyFailedMatch={historyFailedMatch} onOpenTasksDialog={isFullscreenEnvEnabled() ? handleOpenTasksDialog : undefined} />
+      <PromptInputFooter apiKeyStatus={apiKeyStatus} debug={debug} exitMessage={exitMessage} vimMode={isVimModeEnabled() ? vimMode : undefined} mode={mode} autoUpdaterResult={autoUpdaterResult} isAutoUpdating={isAutoUpdating} verbose={verbose} onAutoUpdaterResult={onAutoUpdaterResult} onChangeIsUpdating={setIsAutoUpdating} suggestions={suggestions} selectedSuggestion={selectedSuggestion} maxColumnWidth={maxColumnWidth} toolPermissionContext={effectiveToolPermissionContext} helpOpen={helpOpen} suppressHint={input.length > 0} isLoading={isLoading} tasksSelected={tasksSelected} teamsSelected={teamsSelected} bridgeSelected={bridgeSelected} tmuxSelected={tmuxSelected} teammateFooterIndex={teammateFooterIndex} ideSelection={ideSelection} mcpClients={mcpClients} isPasting={isPasting} isInputWrapped={isInputWrapped} messages={messages} isSearching={isSearchingHistory} historyQuery={historyQuery} setHistoryQuery={setHistoryQuery} historyFailedMatch={historyFailedMatch} onOpenTasksDialog={isFullscreenEnvEnabled() ? handleOpenTasksDialog : undefined} tokenCount={tokenCount} isCalculatingTokens={isCalculatingTokens} />
       {isFullscreenEnvEnabled() ? null : autoModeOptInDialog}
       {isFullscreenEnvEnabled() ?
     // position=absolute takes zero layout height so the spinner
