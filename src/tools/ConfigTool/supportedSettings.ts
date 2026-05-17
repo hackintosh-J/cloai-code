@@ -45,6 +45,12 @@ export const SUPPORTED_SETTINGS: Record<string, SettingConfig> = {
     description: 'Show detailed debug output',
     appStateKey: 'verbose',
   },
+  showThinking: {
+    source: 'global',
+    type: 'boolean',
+    description: 'Show thinking chain content during streaming',
+    appStateKey: 'showThinking',
+  },
   preferredNotifChannel: {
     source: 'global',
     type: 'string',

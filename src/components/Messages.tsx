@@ -209,6 +209,7 @@ type Props = {
   tools: Tools;
   commands: Command[];
   verbose: boolean;
+  showThinking: boolean;
   toolJSX: {
     jsx: React.ReactNode | null;
     shouldHidePromptInput: boolean;
@@ -343,6 +344,7 @@ const MessagesImpl = ({
   tools,
   commands,
   verbose,
+  showThinking,
   toolJSX,
   toolUseConfirmQueue,
   inProgressToolUseIDs,
@@ -711,11 +713,11 @@ const MessagesImpl = ({
           </Box>
         </Box>}
 
-      {isStreamingThinkingVisible && streamingThinking && !isBriefOnly && <Box marginTop={1}>
+      {isStreamingThinkingVisible && streamingThinking && !isBriefOnly && showThinking && <Box marginTop={1}>
           <AssistantThinkingMessage param={{
         type: 'thinking',
         thinking: streamingThinking.thinking
-      }} addMargin={false} isTranscriptMode={true} verbose={verbose} hideInTranscript={false} />
+      }} addMargin={false} isTranscriptMode={false} verbose={verbose} hideInTranscript={false} />
         </Box>}
     </>;
 };

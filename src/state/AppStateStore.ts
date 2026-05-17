@@ -89,6 +89,7 @@ export type FooterItem =
 export type AppState = DeepImmutable<{
   settings: SettingsJson
   verbose: boolean
+  showThinking: boolean
   mainLoopModel: ModelSetting
   mainLoopModelForSession: ModelSetting
   statusLineText: string | undefined
@@ -470,6 +471,7 @@ export function getDefaultAppState(): AppState {
     tasks: {},
     agentNameRegistry: new Map(),
     verbose: false,
+    showThinking: true,
     mainLoopModel: null, // alias, full name (as with --model or env var), or null (default)
     mainLoopModelForSession: null,
     statusLineText: undefined,

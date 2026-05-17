@@ -139,6 +139,18 @@ export function onChangeAppState({
     }))
   }
 
+  // showThinking
+  if (
+    newState.showThinking !== oldState.showThinking &&
+    getGlobalConfig().showThinking !== newState.showThinking
+  ) {
+    const showThinking = newState.showThinking
+    saveGlobalConfig(current => ({
+      ...current,
+      showThinking,
+    }))
+  }
+
   // tungstenPanelVisible (ant-only tmux panel sticky toggle)
   if (process.env.USER_TYPE === 'ant') {
     if (

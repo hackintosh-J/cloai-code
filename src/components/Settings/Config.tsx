@@ -125,6 +125,7 @@ export function Config({
   const maxVisible = Math.max(5, paneCap - 10);
   const mainLoopModel = useAppState(s => s.mainLoopModel);
   const verbose = useAppState(s_0 => s_0.verbose);
+  const showThinking = useAppState(s_1 => s_1.showThinking);
   const thinkingEnabled = useAppState(s_1 => s_1.thinkingEnabled);
   const isFastMode = useAppState(s_2 => isFastModeEnabled() ? s_2.fastMode : false);
   const promptSuggestionEnabled = useAppState(s_3 => s_3.promptSuggestionEnabled);
@@ -161,6 +162,7 @@ export function Config({
       mainLoopModel: s_4.mainLoopModel,
       mainLoopModelForSession: s_4.mainLoopModelForSession,
       verbose: s_4.verbose,
+      showThinking: s_4.showThinking,
       thinkingEnabled: s_4.thinkingEnabled,
       fastMode: s_4.fastMode,
       promptSuggestionEnabled: s_4.promptSuggestionEnabled,
@@ -609,6 +611,25 @@ export function Config({
     value: verbose,
     type: 'boolean',
     onChange: onChangeVerbose
+  }, {
+    id: 'showThinking',
+    label: 'Show thinking',
+    value: showThinking,
+    type: 'boolean',
+    onChange(value: boolean) {
+      saveGlobalConfig(current => ({
+        ...current,
+        showThinking: value
+      }));
+      setGlobalConfig({
+        ...getGlobalConfig(),
+        showThinking: value
+      });
+      setAppState(prev => ({
+        ...prev,
+        showThinking: value
+      }));
+    }
   }, {
     id: 'terminalProgressBarEnabled',
     label: 'Terminal progress bar',
@@ -1495,6 +1516,7 @@ export function Config({
       mainLoopModel: ia.mainLoopModel,
       mainLoopModelForSession: ia.mainLoopModelForSession,
       verbose: ia.verbose,
+      showThinking: ia.showThinking,
       thinkingEnabled: ia.thinkingEnabled,
       fastMode: ia.fastMode,
       promptSuggestionEnabled: ia.promptSuggestionEnabled,

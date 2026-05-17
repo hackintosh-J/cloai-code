@@ -228,6 +228,7 @@ export type GlobalConfig = {
    */
   customNotifyCommand?: string
   verbose: boolean
+  showThinking: boolean
   customApiKeyResponses?: {
     approved?: string[]
     rejected?: string[]
@@ -607,6 +608,7 @@ function createDefaultGlobalConfig(): GlobalConfig {
     theme: 'dark',
     preferredNotifChannel: 'auto',
     verbose: false,
+    showThinking: true,
     editorMode: 'normal',
     autoCompactEnabled: true,
     showTurnDuration: true,
@@ -649,6 +651,7 @@ export const GLOBAL_CONFIG_KEYS = [
   'autoUpdatesProtectedForNative',
   'theme',
   'verbose',
+  'showThinking',
   'preferredNotifChannel',
   'shiftEnterKeyBindingInstalled',
   'editorMode',

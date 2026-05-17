@@ -2957,6 +2957,7 @@ async function run(): Promise<CommanderCommand> {
       tasks: {},
       agentNameRegistry: new Map(),
       verbose: verbose ?? getGlobalConfig().verbose ?? false,
+      showThinking: getGlobalConfig().showThinking ?? true,
       mainLoopModel: initialMainLoopModel,
       mainLoopModelForSession: null,
       isBriefOnly: initialIsBriefOnly,
